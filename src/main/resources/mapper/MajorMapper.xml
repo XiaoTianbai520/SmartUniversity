@@ -24,6 +24,15 @@
         </foreach>
     </select>
 
+    <select id="getMajorByMajorCode" parameterType="java.lang.String"
+            resultType="com.smart.university.domain.entity.MajorDO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM major
+        WHERE major_code = #{value}
+        LIMIT 1
+    </select>
+
     <select id="countMajorByCondition"
             parameterType="com.smart.university.domain.dto.req.MajorPageQueryReqDTO" resultType="long">
         SELECT COUNT(*) FROM major

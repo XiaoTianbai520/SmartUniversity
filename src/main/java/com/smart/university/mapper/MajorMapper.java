@@ -27,6 +27,14 @@ public interface MajorMapper {
     List<MajorDO> listMajorByIds(List<Long> majorIds);
 
     /**
+     * 根据专业编号查询专业
+     *
+     * @param majorCode 专业编号
+     * @return 专业信息
+     */
+    MajorDO getMajorByMajorCode(String majorCode);
+
+    /**
      * 按条件统计专业数量
      *
      * @param requestParam 查询条件

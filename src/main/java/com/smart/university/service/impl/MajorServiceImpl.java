@@ -60,6 +60,7 @@ public class MajorServiceImpl implements MajorService {
         majorDO.setMajorCode(requestParam.getMajorCode());
         majorDO.setMajorName(requestParam.getMajorName());
         if (requestParam.getId() == null) {
+            checkMajorCodeUnique(requestParam.getMajorCode(), null);
             majorDO.setStatus(1);
             majorMapper.saveMajor(majorDO);
             return majorDO.getId();
@@ -68,6 +69,7 @@ public class MajorServiceImpl implements MajorService {
         if (existMajorDO == null) {
             throw new BizException(ResultCodeEnum.PARAM_ERROR, "专业不存在");
         }
+        checkMajorCodeUnique(requestParam.getMajorCode(), requestParam.getId());
         majorDO.setId(requestParam.getId());
         majorMapper.updateMajor(majorDO);
         return requestParam.getId();
@@ -79,6 +81,23 @@ public class MajorServiceImpl implements MajorService {
         majorDO.setId(majorId);
         majorDO.setStatus(requestParam.getStatus());
         majorMapper.updateMajor(majorDO);
+    }
+
+    /**
+     * 校验专业编号是否已被其他专业占用
+     *
+     * @param majorCode 专业编号
+     * @param majorId   当前专业 ID，新增时为 null
+     */
+    private void checkMajorCodeUnique(String majorCode, Long majorId) {
+        MajorDO sameCodeMajorDO = majorMapper.getMajorByMajorCode(majorCode);
+        if (sameCodeMajorDO == null) {
+            return;
+        }
+        if (majorId != null && majorId.equals(sameCodeMajorDO.getId())) {
+            return;
+        }
+        throw new BizException(ResultCodeEnum.DATA_ALREADY_EXIST, "专业编号已存在");
     }
 
     private MajorRespDTO convertToRespDTO(MajorDO majorDO) {
