@@ -2,6 +2,8 @@ package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.crypto.digest.BCrypt;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.enums.ResultCodeEnum;
 import com.smart.university.common.enums.RoleEnum;
@@ -14,6 +16,7 @@ import com.smart.university.domain.dto.req.TeacherSaveReqDTO;
 import com.smart.university.domain.dto.resp.TeacherRespDTO;
 import com.smart.university.mapper.SysUserMapper;
 import com.smart.university.mapper.TeacherMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.TeacherService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,7 +29,7 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-public class TeacherServiceImpl implements TeacherService {
+public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, TeacherDO> implements TeacherService {
 
     private final TeacherMapper teacherMapper;
 
@@ -34,17 +37,15 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     public PageResult<TeacherRespDTO> pageTeacher(TeacherPageQueryReqDTO requestParam) {
-        long total = teacherMapper.countTeacherByCondition(requestParam);
-        if (total <= 0) {
-            return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
-        }
-        List<TeacherDO> teacherDOList = teacherMapper.listTeacherByCondition(requestParam);
+        Page<TeacherDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
+        IPage<TeacherDO> pageResult = teacherMapper.listTeacherByCondition(page, requestParam);
+        List<TeacherDO> teacherDOList = pageResult.getRecords();
         List<TeacherRespDTO> records = teacherDOList.stream().map(each -> {
             TeacherRespDTO result = BeanUtil.copyProperties(each, TeacherRespDTO.class);
             result.setTeacherId(each.getId());
             return result;
         }).toList();
-        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), total);
+        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), pageResult.getTotal());
     }
 
     @Override

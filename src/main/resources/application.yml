@@ -17,16 +17,21 @@ spring:
   mvc:
     throw-exception-if-no-handler-found: true
 
-# MyBatis
-mybatis:
+# MyBatis-Plus
+mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
-    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
     jdbc-type-for-null: 'null'
+  # 仅联表与复杂统计语句保留 XML，其余单表操作由 BaseMapper + Wrapper 完成
   mapper-locations: classpath*:mapper/**/*.xml
   type-aliases-package: com.smart.university.domain.entity
-  # 数据库物理分页在 XML 中通过 LIMIT 实现，不使用内存分页插件
+  type-enums-package: com.smart.university.domain.enums
+  global-config:
+    db-config:
+      # 主键统一为数据库自增
+      id-type: auto
+      # 逻辑删除未启用：业务使用 status 字段表达启停，语义与逻辑删除不同
 
 # 平台自定义配置
 smart-university:

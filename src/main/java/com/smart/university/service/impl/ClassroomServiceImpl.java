@@ -1,6 +1,8 @@
 package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.enums.ResultCodeEnum;
 import com.smart.university.common.exception.BizException;
@@ -10,6 +12,7 @@ import com.smart.university.domain.dto.req.ClassroomSaveReqDTO;
 import com.smart.university.domain.dto.req.StatusUpdateReqDTO;
 import com.smart.university.domain.dto.resp.ClassroomRespDTO;
 import com.smart.university.mapper.ClassroomMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.ClassroomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,19 +24,17 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-public class ClassroomServiceImpl implements ClassroomService {
+public class ClassroomServiceImpl extends ServiceImpl<ClassroomMapper, ClassroomDO> implements ClassroomService {
 
     private final ClassroomMapper classroomMapper;
 
     @Override
     public PageResult<ClassroomRespDTO> pageClassroom(ClassroomPageQueryReqDTO requestParam) {
-        long total = classroomMapper.countClassroomByCondition(requestParam);
-        if (total <= 0) {
-            return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
-        }
-        List<ClassroomDO> classroomDOList = classroomMapper.listClassroomByCondition(requestParam);
+        Page<ClassroomDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
+        IPage<ClassroomDO> pageResult = classroomMapper.listClassroomByCondition(page, requestParam);
+        List<ClassroomDO> classroomDOList = pageResult.getRecords();
         List<ClassroomRespDTO> records = classroomDOList.stream().map(this::convertToRespDTO).toList();
-        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), total);
+        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), pageResult.getTotal());
     }
 
     @Override

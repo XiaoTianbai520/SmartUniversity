@@ -24,6 +24,7 @@ import com.smart.university.mapper.StudentMapper;
 import com.smart.university.mapper.TeachingClassMapper;
 import com.smart.university.mq.message.ScorePublishMessage;
 import com.smart.university.mq.producer.ScorePublishProducer;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.ScoreService;
 import com.smart.university.service.SemesterService;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +47,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ScoreServiceImpl implements ScoreService {
+public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, ScoreDO> implements ScoreService {
 
     /**
      * 成绩最低分

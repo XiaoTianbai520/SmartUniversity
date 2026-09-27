@@ -2,6 +2,8 @@ package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ObjectUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.enums.ResultCodeEnum;
 import com.smart.university.common.exception.BizException;
@@ -12,6 +14,7 @@ import com.smart.university.domain.dto.req.CourseSaveReqDTO;
 import com.smart.university.domain.dto.req.StatusUpdateReqDTO;
 import com.smart.university.domain.dto.resp.CourseRespDTO;
 import com.smart.university.mapper.CourseMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.CourseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,19 +26,17 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-public class CourseServiceImpl implements CourseService {
+public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> implements CourseService {
 
     private final CourseMapper courseMapper;
 
     @Override
     public PageResult<CourseRespDTO> pageCourse(CoursePageQueryReqDTO requestParam) {
-        long total = courseMapper.countCourseByCondition(requestParam);
-        if (total <= 0) {
-            return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
-        }
-        List<CourseDO> courseDOList = courseMapper.listCourseByCondition(requestParam);
+        Page<CourseDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
+        IPage<CourseDO> pageResult = courseMapper.listCourseByCondition(page, requestParam);
+        List<CourseDO> courseDOList = pageResult.getRecords();
         List<CourseRespDTO> records = courseDOList.stream().map(this::convertToRespDTO).toList();
-        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), total);
+        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), pageResult.getTotal());
     }
 
     @Override

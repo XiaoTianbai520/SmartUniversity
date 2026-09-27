@@ -30,6 +30,7 @@ import com.smart.university.mapper.TeachingClassMapper;
 import com.smart.university.mapper.TeachingClassScheduleMapper;
 import com.smart.university.mq.message.CourseSelectionMessage;
 import com.smart.university.mq.producer.CourseSelectionProducer;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.CourseSelectionService;
 import com.smart.university.service.ScheduleService;
 import com.smart.university.service.SelectionBatchService;
@@ -55,7 +56,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class CourseSelectionServiceImpl implements CourseSelectionService {
+public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMapper, CourseSelectionDO> implements CourseSelectionService {
 
     private final CourseSelectionMapper courseSelectionMapper;
 

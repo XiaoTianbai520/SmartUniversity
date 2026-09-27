@@ -2,6 +2,8 @@ package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.enums.ResultCodeEnum;
 import com.smart.university.common.exception.BizException;
@@ -23,6 +25,7 @@ import com.smart.university.mapper.CourseSelectionMapper;
 import com.smart.university.mapper.SelectionBatchClassMapper;
 import com.smart.university.mapper.SelectionBatchMapper;
 import com.smart.university.mapper.TeachingClassMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.SelectionBatchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,7 +41,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-public class SelectionBatchServiceImpl implements SelectionBatchService {
+public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper, SelectionBatchDO> implements SelectionBatchService {
 
     private final SelectionBatchMapper selectionBatchMapper;
 
@@ -52,13 +55,11 @@ public class SelectionBatchServiceImpl implements SelectionBatchService {
 
     @Override
     public PageResult<SelectionBatchRespDTO> pageSelectionBatch(SelectionBatchPageQueryReqDTO requestParam) {
-        long total = selectionBatchMapper.countSelectionBatchByCondition(requestParam);
-        if (total <= 0) {
-            return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
-        }
-        List<SelectionBatchDO> batchDOList = selectionBatchMapper.listSelectionBatchByCondition(requestParam);
+        Page<SelectionBatchDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
+        IPage<SelectionBatchDO> pageResult = selectionBatchMapper.listSelectionBatchByCondition(page, requestParam);
+        List<SelectionBatchDO> batchDOList = pageResult.getRecords();
         List<SelectionBatchRespDTO> records = batchDOList.stream().map(this::convertToRespDTO).toList();
-        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), total);
+        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), pageResult.getTotal());
     }
 
     @Override

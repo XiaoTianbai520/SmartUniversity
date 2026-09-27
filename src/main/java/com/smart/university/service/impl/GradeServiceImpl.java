@@ -1,6 +1,8 @@
 package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.enums.ResultCodeEnum;
 import com.smart.university.common.exception.BizException;
@@ -10,6 +12,7 @@ import com.smart.university.domain.dto.req.GradeSaveReqDTO;
 import com.smart.university.domain.dto.req.StatusUpdateReqDTO;
 import com.smart.university.domain.dto.resp.GradeRespDTO;
 import com.smart.university.mapper.GradeCohortMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.GradeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,19 +24,17 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-public class GradeServiceImpl implements GradeService {
+public class GradeServiceImpl extends ServiceImpl<GradeCohortMapper, GradeCohortDO> implements GradeService {
 
     private final GradeCohortMapper gradeCohortMapper;
 
     @Override
     public PageResult<GradeRespDTO> pageGrade(GradePageQueryReqDTO requestParam) {
-        long total = gradeCohortMapper.countGradeCohortByCondition(requestParam);
-        if (total <= 0) {
-            return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
-        }
-        List<GradeCohortDO> gradeDOList = gradeCohortMapper.listGradeCohortByCondition(requestParam);
+        Page<GradeCohortDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
+        IPage<GradeCohortDO> pageResult = gradeCohortMapper.listGradeCohortByCondition(page, requestParam);
+        List<GradeCohortDO> gradeDOList = pageResult.getRecords();
         List<GradeRespDTO> records = gradeDOList.stream().map(this::convertToRespDTO).toList();
-        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), total);
+        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), pageResult.getTotal());
     }
 
     @Override
@@ -51,7 +52,7 @@ public class GradeServiceImpl implements GradeService {
         requestParam.setStatus(1);
         requestParam.setPage(1);
         requestParam.setPageSize(200);
-        return gradeCohortMapper.listGradeCohortByCondition(requestParam).stream()
+        return gradeCohortMapper.listGradeCohortByCondition(Page.of(1, 200), requestParam).getRecords().stream()
                 .map(this::convertToRespDTO).toList();
     }
 

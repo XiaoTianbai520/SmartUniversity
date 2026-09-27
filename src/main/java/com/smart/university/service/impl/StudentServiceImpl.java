@@ -2,6 +2,8 @@ package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.crypto.digest.BCrypt;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.enums.ResultCodeEnum;
 import com.smart.university.common.enums.RoleEnum;
@@ -20,6 +22,7 @@ import com.smart.university.mapper.GradeCohortMapper;
 import com.smart.university.mapper.MajorMapper;
 import com.smart.university.mapper.StudentMapper;
 import com.smart.university.mapper.SysUserMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,7 +39,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-public class StudentServiceImpl implements StudentService {
+public class StudentServiceImpl extends ServiceImpl<StudentMapper, StudentDO> implements StudentService {
 
     private final StudentMapper studentMapper;
 
@@ -50,13 +53,11 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public PageResult<StudentRespDTO> pageStudent(StudentPageQueryReqDTO requestParam) {
-        long total = studentMapper.countStudentByCondition(requestParam);
-        if (total <= 0) {
-            return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
-        }
-        List<StudentDO> studentDOList = studentMapper.listStudentByCondition(requestParam);
+        Page<StudentDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
+        IPage<StudentDO> pageResult = studentMapper.listStudentByCondition(page, requestParam);
+        List<StudentDO> studentDOList = pageResult.getRecords();
         List<StudentRespDTO> records = convertToRespDTO(studentDOList);
-        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), total);
+        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), pageResult.getTotal());
     }
 
     @Override

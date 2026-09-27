@@ -9,7 +9,7 @@ Spring Boot 3 + MyBatis + MySQL + Redis + RocketMQ 单体式后端骨架。
 |---|---|---|
 | JDK | 21 | |
 | Spring Boot | 3.2.5 | Web / Validation / AOP / Data Redis |
-| MyBatis | 3.0.3（starter） | XML 放在 `resources/mapper`，物理分页用 `LIMIT`，不引入分页插件 |
+| MyBatis-Plus | 3.5.14 | 单表 CRUD 走 `BaseMapper` + `LambdaQueryWrapper`；物理分页走 `PaginationInnerInterceptor`；XML 仅保留联表查询 |
 | MySQL | 8.x | 库名 `edu_course_selection`，建表脚本见上级目录 `高校智慧教务选课平台_V1_数据库建表.sql` |
 | Redis | — | 登录态、教学班容量、学期与批次缓存 |
 | RocketMQ | 2.3.1（starter） | 选课结果、成绩发布的异步解耦 |
@@ -56,6 +56,30 @@ com.smart.university
   - 生产者组：`edu_smart-university_course-selection_pg`
   - 消费者组：`edu_smart-university_course-selection_cg`、`edu_smart-university_score-publish_cg`
   - 发送时设置 KEYS（学生ID_教学班ID）、超时 2000ms、打印 SendResult；消费端保证幂等并按规范打印消费日志
+
+## MyBatis-Plus 落地约定
+
+1. **Mapper 继承 `BaseMapper<XxxDO>`，但对外仍只暴露规范方法名。**
+   单表操作在接口内以 `default` 方法组合 `selectList / selectCount / selectPage / insert / updateById / deleteById` 实现，
+   方法名保持 `get / list / count / save / remove / update` 前缀，Service 层调用方式与命名规范一致。
+2. **分页统一交给 `PaginationInnerInterceptor`。**
+   Service 构造 `Page.of(current, size)` 传入 Mapper，从返回的 `IPage` 取 `getRecords()` 与 `getTotal()`，
+   不再手写 `count` + `LIMIT`，也不引入 PageHelper。单页上限 1000 条。
+3. **XML 只保留联表查询。**
+   当前仅 `TeachingClassMapper.xml` 保留 4 个语句（管理端按课程名模糊匹配、学生端可见范围判定），
+   并去掉了手写 `LIMIT`，由分页插件改写。跨表的简单过滤改用 `inSql` 子查询（如成绩按学期过滤、排课冲突判定）。
+4. **枚举字段必须传枚举实例。**
+   `TeachingClassDO.status`、`SemesterDO.status`、`CourseSelectionDO.status`、`ScoreDO.status`、
+   `SelectionBatchDO.status`、`CourseDO.courseType`、`SysUserDO.role` 均为枚举类型，
+   从字符串 DTO 转换统一走 `EnumParseUtil.parseOrNull`，不要直接把字符串塞进 `Wrapper`。
+5. **Service 实现类继承 `ServiceImpl<XxxMapper, XxxDO>` 作为能力底座**，业务方法仍调用 Mapper 规范方法。
+
+### 版本坑（本机验证）
+
+- Spring Boot 3 的坐标是 **`mybatis-plus-spring-boot3-starter`**，`mybatis-plus-boot-starter` 只到 3.5.7 且用于 Boot 2。
+- 3.5.7 与 Spring Boot 3.2 不兼容，启动报 `Invalid value type for attribute 'factoryBeanObjectType'`。
+- 3.5.9 起 `PaginationInnerInterceptor` 被拆到 **`mybatis-plus-jsqlparser`** 模块，需**显式引入**该依赖，
+  否则编译报找不到符号。
 
 ## 安全设计（对应接口文档第 21 节）
 

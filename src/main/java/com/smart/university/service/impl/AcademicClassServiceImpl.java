@@ -1,6 +1,8 @@
 package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.enums.ResultCodeEnum;
 import com.smart.university.common.exception.BizException;
@@ -14,6 +16,7 @@ import com.smart.university.domain.dto.resp.AcademicClassRespDTO;
 import com.smart.university.mapper.AcademicClassMapper;
 import com.smart.university.mapper.GradeCohortMapper;
 import com.smart.university.mapper.MajorMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.AcademicClassService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +31,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-public class AcademicClassServiceImpl implements AcademicClassService {
+public class AcademicClassServiceImpl extends ServiceImpl<AcademicClassMapper, AcademicClassDO> implements AcademicClassService {
 
     private final AcademicClassMapper academicClassMapper;
 
@@ -38,13 +41,11 @@ public class AcademicClassServiceImpl implements AcademicClassService {
 
     @Override
     public PageResult<AcademicClassRespDTO> pageAcademicClass(AcademicClassPageQueryReqDTO requestParam) {
-        long total = academicClassMapper.countAcademicClassByCondition(requestParam);
-        if (total <= 0) {
-            return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
-        }
-        List<AcademicClassDO> classDOList = academicClassMapper.listAcademicClassByCondition(requestParam);
+        Page<AcademicClassDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
+        IPage<AcademicClassDO> pageResult = academicClassMapper.listAcademicClassByCondition(page, requestParam);
+        List<AcademicClassDO> classDOList = pageResult.getRecords();
         return new PageResult<>(convertToRespDTO(classDOList), requestParam.getCurrentPage(),
-                requestParam.getLimit(), total);
+                requestParam.getLimit(), pageResult.getTotal());
     }
 
     @Override

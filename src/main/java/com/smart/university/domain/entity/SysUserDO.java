@@ -1,5 +1,8 @@
 package com.smart.university.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
@@ -7,17 +10,19 @@ import java.time.LocalDateTime;
 import com.smart.university.common.enums.RoleEnum;
 
 /**
- * 系统用户表
+ * sys_user 表
  */
 @Data
+@TableName("sys_user")
 public class SysUserDO implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
     /**
-     * 用户ID
+     * 主键 ID，数据库自增
      */
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**

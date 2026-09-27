@@ -1,5 +1,8 @@
 package com.smart.university.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
@@ -9,17 +12,19 @@ import java.math.BigDecimal;
 import com.smart.university.domain.enums.SemesterStatusEnum;
 
 /**
- * 学期表
+ * semester 表
  */
 @Data
+@TableName("semester")
 public class SemesterDO implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
     /**
-     * 学期ID
+     * 主键 ID，数据库自增
      */
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**

@@ -1,6 +1,8 @@
 package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.enums.ResultCodeEnum;
 import com.smart.university.common.exception.BizException;
@@ -10,6 +12,7 @@ import com.smart.university.domain.dto.req.MajorSaveReqDTO;
 import com.smart.university.domain.dto.req.StatusUpdateReqDTO;
 import com.smart.university.domain.dto.resp.MajorRespDTO;
 import com.smart.university.mapper.MajorMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.MajorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,19 +24,17 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-public class MajorServiceImpl implements MajorService {
+public class MajorServiceImpl extends ServiceImpl<MajorMapper, MajorDO> implements MajorService {
 
     private final MajorMapper majorMapper;
 
     @Override
     public PageResult<MajorRespDTO> pageMajor(MajorPageQueryReqDTO requestParam) {
-        long total = majorMapper.countMajorByCondition(requestParam);
-        if (total <= 0) {
-            return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
-        }
-        List<MajorDO> majorDOList = majorMapper.listMajorByCondition(requestParam);
+        Page<MajorDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
+        IPage<MajorDO> pageResult = majorMapper.listMajorByCondition(page, requestParam);
+        List<MajorDO> majorDOList = pageResult.getRecords();
         List<MajorRespDTO> records = majorDOList.stream().map(this::convertToRespDTO).toList();
-        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), total);
+        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), pageResult.getTotal());
     }
 
     @Override
@@ -51,7 +52,7 @@ public class MajorServiceImpl implements MajorService {
         requestParam.setStatus(1);
         requestParam.setPage(1);
         requestParam.setPageSize(200);
-        return majorMapper.listMajorByCondition(requestParam).stream().map(this::convertToRespDTO).toList();
+        return majorMapper.listMajorByCondition(Page.of(1, 200), requestParam).getRecords().stream().map(this::convertToRespDTO).toList();
     }
 
     @Override

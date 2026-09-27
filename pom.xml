@@ -20,7 +20,7 @@
     <properties>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <mybatis-starter.version>3.0.3</mybatis-starter.version>
+        <mybatis-plus.version>3.5.14</mybatis-plus.version>
         <rocketmq-starter.version>2.3.1</rocketmq-starter.version>
         <hutool.version>5.8.29</hutool.version>
     </properties>
@@ -56,11 +56,18 @@
             <artifactId>commons-pool2</artifactId>
         </dependency>
 
-        <!-- MyBatis -->
+        <!-- MyBatis-Plus：单表 CRUD 走 BaseMapper，分页走 PaginationInnerInterceptor -->
         <dependency>
-            <groupId>org.mybatis.spring.boot</groupId>
-            <artifactId>mybatis-spring-boot-starter</artifactId>
-            <version>${mybatis-starter.version}</version>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <version>${mybatis-plus.version}</version>
+        </dependency>
+
+        <!-- MyBatis-Plus 3.5.9 起分页插件等依赖 SQL 解析器的组件拆到该模块，需显式引入 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>${mybatis-plus.version}</version>
         </dependency>
 
         <!-- MySQL 驱动 -->

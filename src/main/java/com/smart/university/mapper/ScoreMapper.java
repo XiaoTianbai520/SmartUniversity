@@ -1,17 +1,21 @@
 package com.smart.university.mapper;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.smart.university.domain.dto.req.StudentSelectionQueryReqDTO;
 import com.smart.university.domain.entity.ScoreDO;
 import com.smart.university.domain.enums.ScoreStatusEnum;
-import com.smart.university.domain.dto.req.StudentSelectionQueryReqDTO;
-import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 成绩持久层
+ * 成绩持久层，单表操作由 MyBatis-Plus 的 BaseMapper 提供能力，
+ * 跨表过滤通过子查询实现，方法名遵循 get / list / count / save / remove / update 前缀规范
  */
-public interface ScoreMapper {
+public interface ScoreMapper extends BaseMapper<ScoreDO> {
 
     /**
      * 根据 ID 查询成绩
@@ -19,7 +23,9 @@ public interface ScoreMapper {
      * @param scoreId 成绩 ID
      * @return 成绩信息
      */
-    ScoreDO getScoreById(Long scoreId);
+    default ScoreDO getScoreById(Long scoreId) {
+        return selectById(scoreId);
+    }
 
     /**
      * 根据选课记录 ID 查询成绩
@@ -27,15 +33,21 @@ public interface ScoreMapper {
      * @param courseSelectionId 选课记录 ID
      * @return 成绩信息
      */
-    ScoreDO getScoreBySelectionId(Long courseSelectionId);
+    default ScoreDO getScoreBySelectionId(Long courseSelectionId) {
+        return selectOne(Wrappers.<ScoreDO>lambdaQuery()
+                .eq(ScoreDO::getCourseSelectionId, courseSelectionId)
+                .last("LIMIT 1"));
+    }
 
     /**
-     * 批量查询成绩
+     * 根据选课记录 ID 集合批量查询成绩
      *
      * @param courseSelectionIds 选课记录 ID 集合
      * @return 成绩信息集合
      */
-    List<ScoreDO> listScoreBySelectionIds(List<Long> courseSelectionIds);
+    default List<ScoreDO> listScoreBySelectionIds(List<Long> courseSelectionIds) {
+        return selectList(Wrappers.<ScoreDO>lambdaQuery().in(ScoreDO::getCourseSelectionId, courseSelectionIds));
+    }
 
     /**
      * 查询教学班下的全部成绩
@@ -43,15 +55,35 @@ public interface ScoreMapper {
      * @param teachingClassId 教学班 ID
      * @return 成绩信息集合
      */
-    List<ScoreDO> listScoreByTeachingClassId(Long teachingClassId);
+    default List<ScoreDO> listScoreByTeachingClassId(Long teachingClassId) {
+        return selectList(Wrappers.<ScoreDO>lambdaQuery()
+                .inSql(ScoreDO::getCourseSelectionId,
+                        "SELECT id FROM course_selection WHERE teaching_class_id = " + teachingClassId)
+                .orderByAsc(ScoreDO::getId));
+    }
 
     /**
-     * 查询指定学生已发布的成绩
+     * 查询学生在指定学期下已发布的成绩
      *
-     * @param requestParam 查询条件，已由后端填充 studentId 与 semesterId
+     * @param requestParam 查询条件
      * @return 成绩信息集合
      */
-    List<ScoreDO> listPublishedScoreByStudent(StudentSelectionQueryReqDTO requestParam);
+    default List<ScoreDO> listPublishedScoreByStudent(StudentSelectionQueryReqDTO requestParam) {
+        LambdaQueryWrapper<ScoreDO> queryWrapper = Wrappers.lambdaQuery();
+        queryWrapper.eq(ScoreDO::getStatus, ScoreStatusEnum.PUBLISHED);
+        if (requestParam.getStudentId() != null) {
+            queryWrapper.inSql(ScoreDO::getCourseSelectionId,
+                    "SELECT id FROM course_selection WHERE student_id = " + requestParam.getStudentId());
+        }
+        if (requestParam.getSemesterId() != null) {
+            queryWrapper.inSql(ScoreDO::getCourseSelectionId,
+                    "SELECT cs.id FROM course_selection cs "
+                            + "JOIN teaching_class tc ON tc.id = cs.teaching_class_id "
+                            + "WHERE tc.semester_id = " + requestParam.getSemesterId());
+        }
+        queryWrapper.orderByDesc(ScoreDO::getPublishedAt);
+        return selectList(queryWrapper);
+    }
 
     /**
      * 保存成绩
@@ -59,7 +91,9 @@ public interface ScoreMapper {
      * @param requestParam 成绩数据对象
      * @return 影响行数
      */
-    int saveScore(ScoreDO requestParam);
+    default int saveScore(ScoreDO requestParam) {
+        return insert(requestParam);
+    }
 
     /**
      * 更新成绩
@@ -67,17 +101,25 @@ public interface ScoreMapper {
      * @param requestParam 成绩数据对象
      * @return 影响行数
      */
-    int updateScore(ScoreDO requestParam);
+    default int updateScore(ScoreDO requestParam) {
+        return updateById(requestParam);
+    }
 
     /**
-     * 批量发布成绩
+     * 批量发布成绩，仅处理未发布的记录
      *
      * @param courseSelectionIds 选课记录 ID 集合
      * @param status             目标成绩状态
      * @param publishedAt        发布时间
      * @return 影响行数
      */
-    int updateScoreStatusBySelectionIds(@Param("courseSelectionIds") List<Long> courseSelectionIds,
-                                        @Param("status") ScoreStatusEnum status,
-                                        @Param("publishedAt") LocalDateTime publishedAt);
+    default int updateScoreStatusBySelectionIds(List<Long> courseSelectionIds, ScoreStatusEnum status,
+                                                LocalDateTime publishedAt) {
+        LambdaUpdateWrapper<ScoreDO> updateWrapper = Wrappers.<ScoreDO>lambdaUpdate()
+                .set(ScoreDO::getStatus, status)
+                .set(ScoreDO::getPublishedAt, publishedAt)
+                .eq(ScoreDO::getStatus, ScoreStatusEnum.UNPUBLISHED)
+                .in(ScoreDO::getCourseSelectionId, courseSelectionIds);
+        return update(null, updateWrapper);
+    }
 }

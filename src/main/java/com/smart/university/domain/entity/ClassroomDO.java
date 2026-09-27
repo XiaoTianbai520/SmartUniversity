@@ -1,22 +1,27 @@
 package com.smart.university.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 教室表
+ * classroom 表
  */
 @Data
+@TableName("classroom")
 public class ClassroomDO implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
     /**
-     * 教室ID
+     * 主键 ID，数据库自增
      */
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**

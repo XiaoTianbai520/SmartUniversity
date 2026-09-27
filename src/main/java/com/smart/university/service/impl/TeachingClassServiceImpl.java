@@ -2,6 +2,8 @@ package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.context.UserContextHolder;
 import com.smart.university.common.enums.ResultCodeEnum;
@@ -47,6 +49,7 @@ import com.smart.university.mapper.TeachingClassMajorMapper;
 import com.smart.university.mapper.TeachingClassMapper;
 import com.smart.university.mapper.TeacherMapper;
 import com.smart.university.mapper.TeachingClassScheduleMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.SelectionBatchService;
 import com.smart.university.service.SemesterService;
 import com.smart.university.service.TeachingClassService;
@@ -64,7 +67,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-public class TeachingClassServiceImpl implements TeachingClassService {
+public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, TeachingClassDO> implements TeachingClassService {
 
     private final TeachingClassMapper teachingClassMapper;
 
@@ -96,13 +99,11 @@ public class TeachingClassServiceImpl implements TeachingClassService {
 
     @Override
     public PageResult<TeachingClassRespDTO> pageTeachingClass(TeachingClassPageQueryReqDTO requestParam) {
-        long total = teachingClassMapper.countTeachingClassByCondition(requestParam);
-        if (total <= 0) {
-            return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
-        }
-        List<TeachingClassDO> teachingClassDOList = teachingClassMapper.listTeachingClassByCondition(requestParam);
+        Page<TeachingClassDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
+        IPage<TeachingClassDO> pageResult = teachingClassMapper.listTeachingClassByCondition(page, requestParam);
+        List<TeachingClassDO> teachingClassDOList = pageResult.getRecords();
         return new PageResult<>(convertToRespDTO(teachingClassDOList), requestParam.getCurrentPage(),
-                requestParam.getLimit(), total);
+                requestParam.getLimit(), pageResult.getTotal());
     }
 
     @Override
@@ -179,11 +180,9 @@ public class TeachingClassServiceImpl implements TeachingClassService {
         requestParam.setSemesterId(semesterId);
         requestParam.setBatchId(batchId);
 
-        long total = teachingClassMapper.countStudentVisibleTeachingClass(requestParam);
-        if (total <= 0) {
-            return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
-        }
-        List<TeachingClassDO> teachingClassDOList = teachingClassMapper.listStudentVisibleTeachingClass(requestParam);
+        Page<TeachingClassDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
+        IPage<TeachingClassDO> pageResult = teachingClassMapper.listStudentVisibleTeachingClass(page, requestParam);
+        List<TeachingClassDO> teachingClassDOList = pageResult.getRecords();
         Map<Long, CourseDO> courseMap = buildCourseMap(teachingClassDOList);
         Map<Long, String> teacherMap = buildTeacherMap(teachingClassDOList);
         Map<Long, List<TeachingClassScheduleDO>> scheduleMap = buildScheduleMap(
@@ -209,7 +208,7 @@ public class TeachingClassServiceImpl implements TeachingClassService {
             result.setSchedules(convertSchedule(scheduleMap.getOrDefault(each.getId(), List.of())));
             return result;
         }).toList();
-        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), total);
+        return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), pageResult.getTotal());
     }
 
     @Override

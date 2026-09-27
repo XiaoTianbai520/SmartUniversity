@@ -3,65 +3,34 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.smart.university.mapper.TeachingClassMapper">
 
-    <sql id="Base_Column_List">
-        id, class_code, class_name, course_id, semester_id, teacher_id, capacity, status, created_at, updated_at
+    <!--
+      仅保留两类联表查询：
+      1. 管理端按条件查询教学班，需要按课程名模糊匹配；
+      2. 学生端可见教学班，需要学期、批次、专业、年级多重校验。
+      其余单表操作已由 MyBatis-Plus 的 BaseMapper + Wrapper 完成。
+      分页统一交给 PaginationInnerInterceptor，SQL 中不再手写 LIMIT。
+    -->
+
+    <sql id="Teaching_Class_Column_List">
+        tc.id, tc.class_code, tc.class_name, tc.course_id, tc.semester_id, tc.teacher_id, tc.capacity,
+        tc.status, tc.created_at, tc.updated_at
     </sql>
-
-    <select id="getTeachingClassById" parameterType="java.lang.Long"
-            resultType="com.smart.university.domain.entity.TeachingClassDO">
-        SELECT
-        <include refid="Base_Column_List"/>
-        FROM teaching_class
-        WHERE id = #{value}
-    </select>
-
-    <select id="getTeachingClassByClassCode" parameterType="java.lang.String"
-            resultType="com.smart.university.domain.entity.TeachingClassDO">
-        SELECT
-        <include refid="Base_Column_List"/>
-        FROM teaching_class
-        WHERE class_code = #{value}
-        LIMIT 1
-    </select>
-
-    <select id="listTeachingClassByIds" resultType="com.smart.university.domain.entity.TeachingClassDO">
-        SELECT
-        <include refid="Base_Column_List"/>
-        FROM teaching_class
-        WHERE id IN
-        <foreach collection="collection" item="each" open="(" separator="," close=")">
-            #{each}
-        </foreach>
-    </select>
-
-    <select id="listTeachingClassByTeacher" parameterType="com.smart.university.domain.entity.TeachingClassDO"
-            resultType="com.smart.university.domain.entity.TeachingClassDO">
-        SELECT
-        <include refid="Base_Column_List"/>
-        FROM teaching_class
-        <where>
-            <if test="teacherId != null">AND teacher_id = #{teacherId}</if>
-            <if test="semesterId != null">AND semester_id = #{semesterId}</if>
-        </where>
-        ORDER BY id DESC
-    </select>
 
     <sql id="Condition_Where">
         <where>
-            <if test="semesterId != null">AND tc.semester_id = #{semesterId}</if>
-            <if test="courseId != null">AND tc.course_id = #{courseId}</if>
-            <if test="teacherId != null">AND tc.teacher_id = #{teacherId}</if>
-            <if test="status != null and status != ''">AND tc.status = #{status}</if>
-            <if test="keyword != null and keyword != ''">
-                AND (tc.class_code LIKE CONCAT('%', #{keyword}, '%')
-                OR tc.class_name LIKE CONCAT('%', #{keyword}, '%')
-                OR c.course_name LIKE CONCAT('%', #{keyword}, '%'))
+            <if test="requestParam.semesterId != null">AND tc.semester_id = #{requestParam.semesterId}</if>
+            <if test="requestParam.courseId != null">AND tc.course_id = #{requestParam.courseId}</if>
+            <if test="requestParam.teacherId != null">AND tc.teacher_id = #{requestParam.teacherId}</if>
+            <if test="requestParam.status != null and requestParam.status != ''">AND tc.status = #{requestParam.status}</if>
+            <if test="requestParam.keyword != null and requestParam.keyword != ''">
+                AND (tc.class_code LIKE CONCAT('%', #{requestParam.keyword}, '%')
+                OR tc.class_name LIKE CONCAT('%', #{requestParam.keyword}, '%')
+                OR c.course_name LIKE CONCAT('%', #{requestParam.keyword}, '%'))
             </if>
         </where>
     </sql>
 
-    <select id="countTeachingClassByCondition"
-            parameterType="com.smart.university.domain.dto.req.TeachingClassPageQueryReqDTO" resultType="long">
+    <select id="countTeachingClassByCondition" resultType="long">
         SELECT COUNT(*)
         FROM teaching_class tc
         LEFT JOIN course c ON c.id = tc.course_id
@@ -69,52 +38,51 @@
     </select>
 
     <select id="listTeachingClassByCondition"
-            parameterType="com.smart.university.domain.dto.req.TeachingClassPageQueryReqDTO"
             resultType="com.smart.university.domain.entity.TeachingClassDO">
-        SELECT tc.id, tc.class_code, tc.class_name, tc.course_id, tc.semester_id, tc.teacher_id, tc.capacity,
-        tc.status, tc.created_at, tc.updated_at
+        SELECT
+        <include refid="Teaching_Class_Column_List"/>
         FROM teaching_class tc
         LEFT JOIN course c ON c.id = tc.course_id
         <include refid="Condition_Where"/>
         ORDER BY tc.id DESC
-        LIMIT #{offset}, #{limit}
     </select>
 
     <sql id="Student_Visible_Where">
         <where>
             tc.status = 'AVAILABLE'
-            AND tc.semester_id = #{semesterId}
+            AND tc.semester_id = #{requestParam.semesterId}
             AND tc.semester_id IN (SELECT id FROM semester WHERE status = 'ACTIVE')
             AND EXISTS (
             SELECT 1 FROM selection_batch_class sbc
-            WHERE sbc.batch_id = #{batchId} AND sbc.teaching_class_id = tc.id
+            WHERE sbc.batch_id = #{requestParam.batchId} AND sbc.teaching_class_id = tc.id
             )
             AND EXISTS (
             SELECT 1 FROM teaching_class_major tcm
-            WHERE tcm.teaching_class_id = tc.id AND tcm.major_id = #{majorId}
+            WHERE tcm.teaching_class_id = tc.id AND tcm.major_id = #{requestParam.majorId}
             )
             AND EXISTS (
             SELECT 1 FROM teaching_class_grade tcg
-            WHERE tcg.teaching_class_id = tc.id AND tcg.grade_id = #{gradeId}
+            WHERE tcg.teaching_class_id = tc.id AND tcg.grade_id = #{requestParam.gradeId}
             )
             AND c.status = 1
-            <if test="courseType != null and courseType != ''">AND c.course_type = #{courseType}</if>
-            <if test="keyword != null and keyword != ''">
-                AND (c.course_name LIKE CONCAT('%', #{keyword}, '%')
-                OR c.course_code LIKE CONCAT('%', #{keyword}, '%')
-                OR t.teacher_name LIKE CONCAT('%', #{keyword}, '%'))
+            <if test="requestParam.courseType != null and requestParam.courseType != ''">
+                AND c.course_type = #{requestParam.courseType}
             </if>
-            <if test="weekday != null">
+            <if test="requestParam.keyword != null and requestParam.keyword != ''">
+                AND (c.course_name LIKE CONCAT('%', #{requestParam.keyword}, '%')
+                OR c.course_code LIKE CONCAT('%', #{requestParam.keyword}, '%')
+                OR t.teacher_name LIKE CONCAT('%', #{requestParam.keyword}, '%'))
+            </if>
+            <if test="requestParam.weekday != null">
                 AND EXISTS (
                 SELECT 1 FROM teaching_class_schedule tcs
-                WHERE tcs.teaching_class_id = tc.id AND tcs.weekday = #{weekday}
+                WHERE tcs.teaching_class_id = tc.id AND tcs.weekday = #{requestParam.weekday}
                 )
             </if>
         </where>
     </sql>
 
-    <select id="countStudentVisibleTeachingClass"
-            parameterType="com.smart.university.domain.dto.req.StudentTeachingClassPageQueryReqDTO" resultType="long">
+    <select id="countStudentVisibleTeachingClass" resultType="long">
         SELECT COUNT(*)
         FROM teaching_class tc
         JOIN course c ON c.id = tc.course_id
@@ -123,35 +91,13 @@
     </select>
 
     <select id="listStudentVisibleTeachingClass"
-            parameterType="com.smart.university.domain.dto.req.StudentTeachingClassPageQueryReqDTO"
             resultType="com.smart.university.domain.entity.TeachingClassDO">
-        SELECT tc.id, tc.class_code, tc.class_name, tc.course_id, tc.semester_id, tc.teacher_id, tc.capacity,
-        tc.status, tc.created_at, tc.updated_at
+        SELECT
+        <include refid="Teaching_Class_Column_List"/>
         FROM teaching_class tc
         JOIN course c ON c.id = tc.course_id
         JOIN teacher t ON t.id = tc.teacher_id
         <include refid="Student_Visible_Where"/>
         ORDER BY tc.id DESC
-        LIMIT #{offset}, #{limit}
     </select>
-
-    <insert id="saveTeachingClass" parameterType="com.smart.university.domain.entity.TeachingClassDO"
-            useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO teaching_class (class_code, class_name, course_id, semester_id, teacher_id, capacity, status)
-        VALUES (#{classCode}, #{className}, #{courseId}, #{semesterId}, #{teacherId}, #{capacity}, #{status})
-    </insert>
-
-    <update id="updateTeachingClass" parameterType="com.smart.university.domain.entity.TeachingClassDO">
-        UPDATE teaching_class
-        <set>
-            <if test="classCode != null">class_code = #{classCode},</if>
-            <if test="className != null">class_name = #{className},</if>
-            <if test="courseId != null">course_id = #{courseId},</if>
-            <if test="semesterId != null">semester_id = #{semesterId},</if>
-            <if test="teacherId != null">teacher_id = #{teacherId},</if>
-            <if test="capacity != null">capacity = #{capacity},</if>
-            <if test="status != null">status = #{status},</if>
-        </set>
-        WHERE id = #{id}
-    </update>
 </mapper>
