@@ -16,6 +16,7 @@ import com.smart.university.domain.entity.StudentDO;
 import com.smart.university.domain.entity.TeachingClassDO;
 import com.smart.university.domain.entity.TeachingClassGradeDO;
 import com.smart.university.domain.entity.TeachingClassMajorDO;
+import com.smart.university.domain.entity.TeacherDO;
 import com.smart.university.domain.entity.TeachingClassScheduleDO;
 import com.smart.university.domain.dto.req.StudentTeachingClassPageQueryReqDTO;
 import com.smart.university.domain.dto.req.TeachingClassPageQueryReqDTO;
@@ -44,6 +45,7 @@ import com.smart.university.mapper.StudentMapper;
 import com.smart.university.mapper.TeachingClassGradeMapper;
 import com.smart.university.mapper.TeachingClassMajorMapper;
 import com.smart.university.mapper.TeachingClassMapper;
+import com.smart.university.mapper.TeacherMapper;
 import com.smart.university.mapper.TeachingClassScheduleMapper;
 import com.smart.university.service.SelectionBatchService;
 import com.smart.university.service.SemesterService;
@@ -83,6 +85,8 @@ public class TeachingClassServiceImpl implements TeachingClassService {
     private final ClassroomMapper classroomMapper;
 
     private final AcademicClassMapper academicClassMapper;
+
+    private final TeacherMapper teacherMapper;
 
     private final StudentMapper studentMapper;
 
@@ -181,6 +185,7 @@ public class TeachingClassServiceImpl implements TeachingClassService {
         }
         List<TeachingClassDO> teachingClassDOList = teachingClassMapper.listStudentVisibleTeachingClass(requestParam);
         Map<Long, CourseDO> courseMap = buildCourseMap(teachingClassDOList);
+        Map<Long, String> teacherMap = buildTeacherMap(teachingClassDOList);
         Map<Long, List<TeachingClassScheduleDO>> scheduleMap = buildScheduleMap(
                 teachingClassDOList.stream().map(TeachingClassDO::getId).toList());
         List<StudentTeachingClassRespDTO> records = teachingClassDOList.stream().map(each -> {
@@ -197,6 +202,7 @@ public class TeachingClassServiceImpl implements TeachingClassService {
                     ? null : courseDO.getCourseType().name());
             result.setCredit(courseDO == null ? null : courseDO.getCredit());
             result.setTeacherId(each.getTeacherId());
+            result.setTeacherName(teacherMap.get(each.getTeacherId()));
             result.setCapacity(each.getCapacity());
             result.setSelectedCount(selectedCount);
             result.setRemainingCount(Math.max(each.getCapacity() - selectedCount, 0L));
@@ -237,6 +243,8 @@ public class TeachingClassServiceImpl implements TeachingClassService {
 
         TeacherBriefRespDTO teacher = new TeacherBriefRespDTO();
         teacher.setTeacherId(teachingClassDO.getTeacherId());
+        TeacherDO teacherDO = teacherMapper.getTeacherById(teachingClassDO.getTeacherId());
+        teacher.setTeacherName(teacherDO == null ? null : teacherDO.getTeacherName());
         result.setTeacher(teacher);
 
         List<Long> majorIds = teachingClassMajorMapper.listMajorIdByTeachingClassId(teachingClassId);
@@ -417,6 +425,22 @@ public class TeachingClassServiceImpl implements TeachingClassService {
         }
         return courseMapper.listCourseByIds(courseIds).stream()
                 .collect(Collectors.toMap(CourseDO::getId, Function.identity()));
+    }
+
+    /**
+     * 构建教学班任课教师姓名映射
+     *
+     * @param teachingClassDOList 教学班数据对象集合
+     * @return 教师 ID 与教师姓名的映射
+     */
+    private Map<Long, String> buildTeacherMap(List<TeachingClassDO> teachingClassDOList) {
+        List<Long> teacherIds = teachingClassDOList.stream()
+                .map(TeachingClassDO::getTeacherId).distinct().toList();
+        if (CollUtil.isEmpty(teacherIds)) {
+            return Map.of();
+        }
+        return teacherMapper.listTeacherByIds(teacherIds).stream()
+                .collect(Collectors.toMap(TeacherDO::getId, TeacherDO::getTeacherName));
     }
 
     /**
