@@ -3,6 +3,7 @@ package com.smart.university.common.exception;
 import com.smart.university.common.base.Result;
 import com.smart.university.common.enums.ResultCodeEnum;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -59,6 +60,18 @@ public class GlobalExceptionHandler {
     public Result<Void> handleRequestException(Exception ex) {
         log.warn("请求参数异常：{}", ex.getMessage());
         return Result.failure(ResultCodeEnum.FORMAT_ERROR);
+    }
+
+    /**
+     * 处理数据库唯一键冲突，转换为数据已存在，避免直接抛出系统异常
+     *
+     * @param ex 唯一键冲突异常
+     * @return 统一响应
+     */
+    @ExceptionHandler(DuplicateKeyException.class)
+    public Result<Void> handleDuplicateKeyException(DuplicateKeyException ex) {
+        log.warn("唯一键冲突：{}", ex.getRootCause() == null ? ex.getMessage() : ex.getRootCause().getMessage());
+        return Result.failure(ResultCodeEnum.DATA_ALREADY_EXIST);
     }
 
     /**

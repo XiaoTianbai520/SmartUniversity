@@ -91,6 +91,11 @@ public enum ResultCodeEnum {
     SELECTION_NOT_EXIST(40407, "选课记录不存在"),
 
     /**
+     * 数据已存在，用于兜底数据库唯一键冲突
+     */
+    DATA_ALREADY_EXIST(40900, "数据已存在"),
+
+    /**
      * 用户名已存在
      */
     USERNAME_EXIST(40901, "用户名已存在"),
