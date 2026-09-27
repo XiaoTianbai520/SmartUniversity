@@ -8,9 +8,9 @@ smart-university:
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/edu_course_selection?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://192.168.1.102:3306/edu_course_selection?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password: root
+    password: 123456
     hikari:
       pool-name: SmartUniversityHikariPool
       minimum-idle: 5
@@ -21,9 +21,9 @@ spring:
 
   data:
     redis:
-      host: 127.0.0.1
+      host: 192.168.1.102
       port: 6379
-      password:
+      password: 123456
       database: 0
       timeout: 3000ms
       lettuce:

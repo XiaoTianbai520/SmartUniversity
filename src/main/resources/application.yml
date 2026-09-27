@@ -49,7 +49,7 @@ smart-university:
     enabled: true
 
 rocketmq:
-  name-server: 127.0.0.1:9876
+  name-server: 192.168.1.102:9876
   producer:
     group: edu_smart-university_course-selection_pg
     send-message-timeout: 2000
