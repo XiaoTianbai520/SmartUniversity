@@ -1,14 +1,15 @@
 smart-university:
-  # 本地未部署 RocketMQ 时置为 false，避免连接 NameServer 失败影响启动
+  # RocketMQ NameServer 与 Broker 已在 192.168.1.102 就绪，本地可直接开启
   mq:
-    enabled: false
+    enabled: true
+  # Redis 已就绪，选课走 Redis 原子预扣减
   selection:
-    redis-deduct-enabled: false
+    redis-deduct-enabled: true
 
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.1.102:3306/edu_course_selection?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://192.168.1.102:3306/edu_course_selection?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: 123456
     hikari:

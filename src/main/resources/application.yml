@@ -37,10 +37,8 @@ smart-university:
     jwt-secret: smart-university-default-jwt-secret-please-change
     # Token 有效期（秒），默认 8 小时
     token-ttl: 28800
-    # 免鉴权路径
-    exclude-paths:
-      - /api/v1/auth/login
-      - /error
+    # 免鉴权路径，多个使用英文逗号分隔
+    exclude-paths: /api/v1/auth/login,/error
   # 选课并发控制开关：false 走纯数据库事务，true 走 Redis 预扣减 + MQ 异步落库
   selection:
     redis-deduct-enabled: true
@@ -58,4 +56,6 @@ rocketmq:
 logging:
   level:
     root: info
-    com.smart.university: debug
+    com.smart.university: info
+    # 需要排查 SQL 时把该行改为 debug
+    com.smart.university.mapper: info
