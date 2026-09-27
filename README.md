@@ -92,14 +92,41 @@ com.smart.university
 
 已加 `@Transactional` 的位置：新增 / 修改学生、新增 / 修改教师（含 sys_user 联动）、创建教学班（含专业年级关联）、选课、退课、成绩保存与发布。
 
+## 异常处理
+
+`GlobalExceptionHandler` 统一兜底：业务异常按错误码返回，参数校验异常返回 `40001`，JSON 解析 / 参数缺失 / 类型不匹配返回 `40002`，**数据库唯一键冲突返回 `40900 数据已存在`**（避免穿透成 500），其余归为 `500 服务器内部异常`。
+
+`40900` 是接口文档 26 个错误码之外的补充码，用于兜底所有未显式查重的唯一键（年级、行政班、教室、学期等基础数据）。若某类资源需要更精确的提示，可在对应 Service 内参照 `MajorServiceImpl#checkMajorCodeUnique` 做显式查重。
+
 ## 启动前准备
 
 1. 执行上级目录的 `高校智慧教务选课平台_V1_数据库建表.sql` 建库建表。
-2. 修改 `src/main/resources/application-dev.yml` 里的 MySQL 与 Redis 地址。
-3. 初始化一个管理员账号（`sys_user.password_hash` 存 BCrypt 哈希，可用 `BCrypt.hashpw("123456", BCrypt.gensalt())` 生成）。
-4. RocketMQ：默认在 dev 环境关闭（`smart-university.mq.enabled: false`），
-   本地部署 NameServer + Broker 后把该开关改成 `true` 即可启用消息收发。
-5. 启动：`mvn spring-boot:run`，接口基础路径 `http://localhost:8080/api/v1`。
+2. 可选：执行 `db/test-data.sql` 灌入测试数据（含管理员 / 教师 / 学生账号、课程、教学班、排课、选课批次、一条已发布成绩）。
+3. 修改 `src/main/resources/application-dev.yml` 里的 MySQL 与 Redis 地址。
+4. 初始化一个管理员账号（`sys_user.password_hash` 存 BCrypt 哈希，可用 `BCrypt.hashpw("123456", BCrypt.gensalt())` 生成）。
+5. RocketMQ：`smart-university.mq.enabled` 控制，本地没部署 NameServer + Broker 时置 `false` 即可正常启动。
+6. 启动：`mvn spring-boot:run`，接口基础路径 `http://localhost:8080/api/v1`。
+
+## 测试数据
+
+`db/test-data.sql` 灌入后的默认账号（密码统一 `123456`）：
+
+| 角色 | 账号 | 说明 |
+|---|---|---|
+| 管理员 | `admin` | 可访问全部 `/api/v1/admin/**` |
+| 教师 | `T10001` / `T10002` | 张老师（副教授）/ 李老师 |
+| 学生 | `20260001` ~ `20260005` | 均属软件工程专业 2026 级 1 班 |
+
+数据规模：5 名学生、2 名教师、2 个专业、1 个年级、2 个行政班、3 间教室、1 个当前学期、5 门课程、5 个教学班（含排课）、1 个进行中的选课批次。
+
+## 环境验证状态
+
+已在一台 MySQL 8.4 + Redis + RocketMQ 的机器上完成端到端冒烟，全部通过：
+
+- 学生端：登录、`/auth/me`、可选课程列表（含教师姓名）、选课、课表、学分统计、退课、已发布成绩、登出
+- 教师端：登录、我的教学班、学生名单、成绩列表
+- 管理端：17 个只读查询接口全 200；专业新增 / 修改 / 停用成功；专业编号重复返回 `40900 专业编号已存在`
+- 安全：越权访问返回 `40301 无接口访问权限`，未携带 Token 返回 `40101 未登录`
 
 ## 接口清单
 
