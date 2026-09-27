@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smart.university.mapper.TeachingClassScheduleMapper">
+
+    <sql id="Base_Column_List">
+        id, teaching_class_id, classroom_id, weekday, start_section, end_section, start_week, end_week,
+        created_at, updated_at
+    </sql>
+
+    <select id="getScheduleById" parameterType="java.lang.Long"
+            resultType="com.smart.university.domain.entity.TeachingClassScheduleDO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM teaching_class_schedule
+        WHERE id = #{value}
+    </select>
+
+    <select id="listScheduleByTeachingClassId" parameterType="java.lang.Long"
+            resultType="com.smart.university.domain.entity.TeachingClassScheduleDO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM teaching_class_schedule
+        WHERE teaching_class_id = #{value}
+        ORDER BY weekday, start_section
+    </select>
+
+    <select id="listScheduleByTeachingClassIds"
+            resultType="com.smart.university.domain.entity.TeachingClassScheduleDO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM teaching_class_schedule
+        WHERE teaching_class_id IN
+        <foreach collection="collection" item="each" open="(" separator="," close=")">
+            #{each}
+        </foreach>
+        ORDER BY weekday, start_section
+    </select>
+
+    <insert id="saveSchedule" parameterType="com.smart.university.domain.entity.TeachingClassScheduleDO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO teaching_class_schedule
+        (teaching_class_id, classroom_id, weekday, start_section, end_section, start_week, end_week)
+        VALUES
+        (#{teachingClassId}, #{classroomId}, #{weekday}, #{startSection}, #{endSection}, #{startWeek}, #{endWeek})
+    </insert>
+
+    <update id="updateSchedule" parameterType="com.smart.university.domain.entity.TeachingClassScheduleDO">
+        UPDATE teaching_class_schedule
+        <set>
+            <if test="classroomId != null">classroom_id = #{classroomId},</if>
+            <if test="weekday != null">weekday = #{weekday},</if>
+            <if test="startSection != null">start_section = #{startSection},</if>
+            <if test="endSection != null">end_section = #{endSection},</if>
+            <if test="startWeek != null">start_week = #{startWeek},</if>
+            <if test="endWeek != null">end_week = #{endWeek},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="removeSchedule" parameterType="java.lang.Long">
+        DELETE FROM teaching_class_schedule WHERE id = #{value}
+    </delete>
+
+    <!--
+      时间冲突判定条件：
+      星期相同 AND 教学周有交集 AND 节次有交集，且限定在同一学期内、排除当前记录自身。
+    -->
+    <sql id="Conflict_Join">
+        FROM teaching_class_schedule tcs
+        JOIN teaching_class conflict_tc ON conflict_tc.id = tcs.teaching_class_id
+        JOIN teaching_class current_tc ON current_tc.id = #{teachingClassId}
+        WHERE conflict_tc.semester_id = current_tc.semester_id
+        AND tcs.id &lt;&gt; IFNULL(#{excludeScheduleId}, 0)
+        AND tcs.weekday = #{weekday}
+        AND tcs.start_week &lt;= #{endWeek}
+        AND tcs.end_week &gt;= #{startWeek}
+        AND tcs.start_section &lt;= #{endSection}
+        AND tcs.end_section &gt;= #{startSection}
+    </sql>
+
+    <select id="countTeacherConflictSchedule"
+            parameterType="com.smart.university.domain.dto.req.ScheduleConflictQueryReqDTO" resultType="long">
+        SELECT COUNT(*)
+        <include refid="Conflict_Join"/>
+        AND conflict_tc.teacher_id = #{teacherId}
+    </select>
+
+    <select id="countClassroomConflictSchedule"
+            parameterType="com.smart.university.domain.dto.req.ScheduleConflictQueryReqDTO" resultType="long">
+        SELECT COUNT(*)
+        <include refid="Conflict_Join"/>
+        AND tcs.classroom_id = #{classroomId}
+    </select>
+</mapper>

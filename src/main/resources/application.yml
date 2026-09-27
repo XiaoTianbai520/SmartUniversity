@@ -1,0 +1,61 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: smart-university
+  servlet:
+    # 保持接口文档约定的基础路径为 /api/v1，不再叠加业务级 context-path
+    context-path: /
+  # JSON 全局配置
+  jackson:
+    default-property-inclusion: non_null
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  mvc:
+    throw-exception-if-no-handler-found: true
+
+# MyBatis
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
+    jdbc-type-for-null: 'null'
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.smart.university.domain.entity
+  # 数据库物理分页在 XML 中通过 LIMIT 实现，不使用内存分页插件
+
+# 平台自定义配置
+smart-university:
+  # 接口统一前缀，与接口文档 V1 保持一致
+  api-prefix: /api/v1
+  auth:
+    # JWT 签名密钥，生产环境必须替换为随机值并通过环境变量注入
+    jwt-secret: smart-university-default-jwt-secret-please-change
+    # Token 有效期（秒），默认 8 小时
+    token-ttl: 28800
+    # 免鉴权路径
+    exclude-paths:
+      - /api/v1/auth/login
+      - /error
+  # 选课并发控制开关：false 走纯数据库事务，true 走 Redis 预扣减 + MQ 异步落库
+  selection:
+    redis-deduct-enabled: true
+  # 消息队列开关：本地没有 RocketMQ 环境时可置为 false，应用仍可正常启动
+  mq:
+    enabled: true
+
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: edu_smart-university_course-selection_pg
+    send-message-timeout: 2000
+    retry-times-when-send-failed: 2
+
+logging:
+  level:
+    root: info
+    com.smart.university: debug

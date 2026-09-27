@@ -1,0 +1,139 @@
+# 高校智慧教务选课平台（SmartUniversity）
+
+Spring Boot 3 + MyBatis + MySQL + Redis + RocketMQ 单体式后端骨架。
+接口契约严格对齐《高校智慧教务选课平台_V1_接口文档.md》，命名严格对齐《命名规范.md》。
+
+## 技术选型
+
+| 组件 | 版本 | 说明 |
+|---|---|---|
+| JDK | 21 | |
+| Spring Boot | 3.2.5 | Web / Validation / AOP / Data Redis |
+| MyBatis | 3.0.3（starter） | XML 放在 `resources/mapper`，物理分页用 `LIMIT`，不引入分页插件 |
+| MySQL | 8.x | 库名 `edu_course_selection`，建表脚本见上级目录 `高校智慧教务选课平台_V1_数据库建表.sql` |
+| Redis | — | 登录态、教学班容量、学期与批次缓存 |
+| RocketMQ | 2.3.1（starter） | 选课结果、成绩发布的异步解耦 |
+| HuTool | 5.8.29 | 工具类统一走 HuTool，禁止重复造轮子 |
+
+## 目录结构
+
+```
+com.smart.university
+├── common          通用能力
+│   ├── base        Result / PageResult 统一响应
+│   ├── constant    RedisCommonConstant / RocketMQConstant
+│   ├── context     UserContext / UserContextHolder（ThreadLocal 透传登录态）
+│   ├── enums       ResultCodeEnum（全量业务错误码）/ RoleEnum
+│   ├── exception   BizException / GlobalExceptionHandler
+│   └── util        JwtUtil / RedisKeyUtil
+├── config          DataBaseConfiguration / RedisConfiguration / WebConfiguration
+├── web
+│   ├── annotation  RequireRole（角色权限）
+│   └── interceptor AuthenticationInterceptor（Token 解析 + 角色校验）
+├── controller      按角色分包：auth / student / teacher / admin
+├── service         接口 + impl，方法名 get / list / count / save / remove / update 前缀
+├── mapper          MyBatis 接口，一一对应 resources/mapper/*.xml
+├── domain
+│   ├── entity      xxxDO，字段名与建表 SQL 完全对齐
+│   ├── dto.req     xxxReqDTO，对象入参统一命名 requestParam
+│   ├── dto.resp    xxxRespDTO
+│   └── enums       业务状态枚举，枚举名即数据库存储值
+└── mq              message / producer / consumer
+```
+
+> 注意：数据对象包名是 `domain.entity` 而不是 `domain.do`，因为 `do` 是 Java 关键字，不能作为包名。
+
+## 命名约定落地情况
+
+- 方法：`getXxx` / `listXxx` / `countXxx` / `saveXxx` / `removeXxx` / `updateXxx`
+- 对象入参：Controller、Service、Mapper 三层统一 `requestParam`
+- 领域模型：`SysUserDO`、`StudentSaveReqDTO`、`StudentPageQueryRespDTO`
+- 配置类 / 常量类 / 上下文 / 枚举：`XxxConfiguration` / `XxxConstant` / `XxxContext` / `XxxEnum`
+- 返回值变量 `result`，循环变量 `each`，Map 遍历 `entry`，捕获异常 `ex`
+- RocketMQ：
+  - Topic：`edu_smart-university_topic`
+  - Tag：`edu_smart-university_course-selection_tag`、`..._course-withdraw_tag`、`..._score-publish_tag`
+  - 生产者组：`edu_smart-university_course-selection_pg`
+  - 消费者组：`edu_smart-university_course-selection_cg`、`edu_smart-university_score-publish_cg`
+  - 发送时设置 KEYS（学生ID_教学班ID）、超时 2000ms、打印 SendResult；消费端保证幂等并按规范打印消费日志
+
+## 安全设计（对应接口文档第 21 节）
+
+1. `studentId` / `teacherId` / `userId` 一律从 Token 还原，禁止前端传入；查询类 DTO 中的这些字段由 Service 在后端填充。
+2. `@RequireRole` 解决"你是不是这个角色"，Service 内再做数据归属校验解决"这个教学班是不是你的"。
+3. 学生课程查询与选课是**两层校验**：列表查询时按专业 / 年级 / 学期 / 批次 / 开放状态过滤，点击选课时再完整跑一遍 13 步校验。
+4. 密码使用 BCrypt 哈希，不落明文。
+
+## 核心链路：学生选课
+
+`CourseSelectionServiceImpl#selectCourse` 按文档建议顺序校验：
+
+```
+1  当前用户是否为学生      → 40101 / 40402
+2  教学班是否存在          → 40405
+3  教学班是否属于当前学期
+4  是否存在有效选课批次    → 40912
+5  教学班是否属于当前批次  → 40912
+6  教学班状态是否允许选课
+7  专业是否符合            → 40914
+8  年级是否符合            → 40915
+9  是否重复选课            → 40909
+10 是否与已选课程时间冲突  → 40908
+11 是否超过学期学分上限    → 40911
+12 教学班容量是否已满      → 40910
+13 写入 / 恢复选课记录（事务）+ 发送选课消息
+```
+
+容量控制由 `smart-university.selection.redis-deduct-enabled` 控制：
+- `true`：Redis 原子自增预扣减，超出则回退并抛 40910（V1.2 高并发形态，可进一步换成 Lua 脚本）
+- `false`：直接以数据库实时统计判定
+
+## 事务边界
+
+已加 `@Transactional` 的位置：新增 / 修改学生、新增 / 修改教师（含 sys_user 联动）、创建教学班（含专业年级关联）、选课、退课、成绩保存与发布。
+
+## 启动前准备
+
+1. 执行上级目录的 `高校智慧教务选课平台_V1_数据库建表.sql` 建库建表。
+2. 修改 `src/main/resources/application-dev.yml` 里的 MySQL 与 Redis 地址。
+3. 初始化一个管理员账号（`sys_user.password_hash` 存 BCrypt 哈希，可用 `BCrypt.hashpw("123456", BCrypt.gensalt())` 生成）。
+4. RocketMQ：默认在 dev 环境关闭（`smart-university.mq.enabled: false`），
+   本地部署 NameServer + Broker 后把该开关改成 `true` 即可启用消息收发。
+5. 启动：`mvn spring-boot:run`，接口基础路径 `http://localhost:8080/api/v1`。
+
+## 接口清单
+
+```
+POST   /api/v1/auth/login
+GET    /api/v1/auth/me
+POST   /api/v1/auth/logout
+
+GET    /api/v1/student/teaching-classes
+GET    /api/v1/student/teaching-classes/{id}
+POST   /api/v1/student/selections
+GET    /api/v1/student/selections
+DELETE /api/v1/student/selections/{id}
+GET    /api/v1/student/timetable
+GET    /api/v1/student/credits
+GET    /api/v1/student/scores
+
+GET    /api/v1/teacher/teaching-classes
+GET    /api/v1/teacher/teaching-classes/{id}
+GET    /api/v1/teacher/teaching-classes/{id}/students
+GET    /api/v1/teacher/teaching-classes/{id}/scores
+PUT    /api/v1/teacher/teaching-classes/{id}/scores/{selectionId}
+POST   /api/v1/teacher/teaching-classes/{id}/scores/publish
+
+CRUD   /api/v1/admin/students
+CRUD   /api/v1/admin/teachers
+CRUD   /api/v1/admin/majors
+CRUD   /api/v1/admin/grades
+CRUD   /api/v1/admin/academic-classes
+CRUD   /api/v1/admin/classrooms
+CRUD   /api/v1/admin/semesters
+CRUD   /api/v1/admin/courses
+CRUD   /api/v1/admin/teaching-classes
+CRUD   /api/v1/admin/teaching-classes/{id}/schedules
+CRUD   /api/v1/admin/selection-batches
+CRUD   /api/v1/admin/selection-batches/{id}/teaching-classes
+```

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smart.university.mapper.ClassroomMapper">
+
+    <sql id="Base_Column_List">
+        id, building_name, room_no, capacity, status, created_at, updated_at
+    </sql>
+
+    <select id="getClassroomById" parameterType="java.lang.Long" resultType="com.smart.university.domain.entity.ClassroomDO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM classroom
+        WHERE id = #{value}
+    </select>
+
+    <select id="listClassroomByIds" resultType="com.smart.university.domain.entity.ClassroomDO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM classroom
+        WHERE id IN
+        <foreach collection="collection" item="each" open="(" separator="," close=")">
+            #{each}
+        </foreach>
+    </select>
+
+    <select id="countClassroomByCondition"
+            parameterType="com.smart.university.domain.dto.req.ClassroomPageQueryReqDTO" resultType="long">
+        SELECT COUNT(*) FROM classroom
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (building_name LIKE CONCAT('%', #{keyword}, '%')
+                OR room_no LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+    </select>
+
+    <select id="listClassroomByCondition"
+            parameterType="com.smart.university.domain.dto.req.ClassroomPageQueryReqDTO"
+            resultType="com.smart.university.domain.entity.ClassroomDO">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM classroom
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (building_name LIKE CONCAT('%', #{keyword}, '%')
+                OR room_no LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <insert id="saveClassroom" parameterType="com.smart.university.domain.entity.ClassroomDO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO classroom (building_name, room_no, capacity, status)
+        VALUES (#{buildingName}, #{roomNo}, #{capacity}, #{status})
+    </insert>
+
+    <update id="updateClassroom" parameterType="com.smart.university.domain.entity.ClassroomDO">
+        UPDATE classroom
+        <set>
+            <if test="buildingName != null">building_name = #{buildingName},</if>
+            <if test="roomNo != null">room_no = #{roomNo},</if>
+            <if test="capacity != null">capacity = #{capacity},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+</mapper>

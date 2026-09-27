@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smart.university.mapper.TeachingClassGradeMapper">
+
+    <insert id="saveTeachingClassGrade" parameterType="com.smart.university.domain.entity.TeachingClassGradeDO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO teaching_class_grade (teaching_class_id, grade_id)
+        VALUES (#{teachingClassId}, #{gradeId})
+    </insert>
+
+    <delete id="removeTeachingClassGradeByTeachingClassId" parameterType="java.lang.Long">
+        DELETE FROM teaching_class_grade WHERE teaching_class_id = #{value}
+    </delete>
+
+    <select id="listGradeIdByTeachingClassId" parameterType="java.lang.Long" resultType="java.lang.Long">
+        SELECT grade_id FROM teaching_class_grade WHERE teaching_class_id = #{value}
+    </select>
+
+    <select id="countTeachingClassGrade" parameterType="com.smart.university.domain.entity.TeachingClassGradeDO"
+            resultType="long">
+        SELECT COUNT(*) FROM teaching_class_grade
+        WHERE teaching_class_id = #{teachingClassId}
+        AND grade_id = #{gradeId}
+    </select>
+</mapper>
