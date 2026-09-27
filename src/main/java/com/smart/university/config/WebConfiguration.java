@@ -1,5 +1,6 @@
 package com.smart.university.config;
 
+import cn.hutool.core.util.StrUtil;
 import com.smart.university.web.interceptor.AuthenticationInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,15 +20,18 @@ public class WebConfiguration implements WebMvcConfigurer {
     private final AuthenticationInterceptor authenticationInterceptor;
 
     /**
-     * 免鉴权路径
+     * 免鉴权路径，多个使用英文逗号分隔
      */
-    @Value("${smart-university.auth.exclude-paths}")
-    private List<String> excludePaths;
+    @Value("${smart-university.auth.exclude-paths:}")
+    private String excludePaths;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        List<String> excludePathList = StrUtil.isBlank(excludePaths)
+                ? List.of()
+                : StrUtil.splitTrim(excludePaths, ',');
         registry.addInterceptor(authenticationInterceptor)
                 .addPathPatterns("/api/v1/**")
-                .excludePathPatterns(excludePaths);
+                .excludePathPatterns(excludePathList);
     }
 }
