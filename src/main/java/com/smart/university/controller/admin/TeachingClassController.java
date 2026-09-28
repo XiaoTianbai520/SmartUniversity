@@ -1,4 +1,5 @@
 package com.smart.university.controller.admin;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.base.Result;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -29,6 +32,7 @@ import java.util.List;
 /**
  * 教务端教学班与排课管理接口
  */
+@Tag(name = "教务端-教学班与排课", description = "教学班与排课的增删改查、状态调整")
 @RestController
 @RequestMapping("/api/v1/admin/teaching-classes")
 @RequireRole(RoleEnum.ADMIN)
@@ -45,6 +49,7 @@ public class TeachingClassController {
      * @param requestParam 查询条件
      * @return 教学班分页结果
      */
+    @Operation(summary = "分页查询教学班")
     @GetMapping
     public Result<PageResult<TeachingClassRespDTO>> pageTeachingClass(TeachingClassPageQueryReqDTO requestParam) {
         return Result.success(teachingClassService.pageTeachingClass(requestParam));
@@ -56,8 +61,9 @@ public class TeachingClassController {
      * @param teachingClassId 教学班 ID
      * @return 教学班信息
      */
+    @Operation(summary = "查询教学班详情")
     @GetMapping("/{teachingClassId}")
-    public Result<TeachingClassRespDTO> getTeachingClassDetail(@PathVariable Long teachingClassId) {
+    public Result<TeachingClassRespDTO> getTeachingClassDetail(@Parameter(example = "1") @PathVariable Long teachingClassId) {
         return Result.success(teachingClassService.getTeachingClassDetail(teachingClassId));
     }
 
@@ -67,6 +73,7 @@ public class TeachingClassController {
      * @param requestParam 教学班入参
      * @return 教学班 ID
      */
+    @Operation(summary = "创建教学班")
     @PostMapping
     public Result<Long> saveTeachingClass(@Valid @RequestBody TeachingClassSaveReqDTO requestParam) {
         return Result.success("保存成功", teachingClassService.saveTeachingClass(requestParam));
@@ -79,8 +86,9 @@ public class TeachingClassController {
      * @param requestParam    教学班入参
      * @return 教学班 ID
      */
+    @Operation(summary = "修改教学班")
     @PutMapping("/{teachingClassId}")
-    public Result<Long> updateTeachingClass(@PathVariable Long teachingClassId,
+    public Result<Long> updateTeachingClass(@Parameter(example = "1") @PathVariable Long teachingClassId,
                                             @Valid @RequestBody TeachingClassSaveReqDTO requestParam) {
         requestParam.setId(teachingClassId);
         return Result.success("保存成功", teachingClassService.saveTeachingClass(requestParam));
@@ -93,8 +101,9 @@ public class TeachingClassController {
      * @param requestParam    状态入参
      * @return 空响应
      */
+    @Operation(summary = "修改教学班状态")
     @PatchMapping("/{teachingClassId}/status")
-    public Result<Void> updateTeachingClassStatus(@PathVariable Long teachingClassId,
+    public Result<Void> updateTeachingClassStatus(@Parameter(example = "1") @PathVariable Long teachingClassId,
                                                   @Valid @RequestBody TeachingClassStatusUpdateReqDTO requestParam) {
         teachingClassService.updateTeachingClassStatus(teachingClassId, requestParam);
         return Result.success("状态修改成功", null);
@@ -106,8 +115,9 @@ public class TeachingClassController {
      * @param teachingClassId 教学班 ID
      * @return 排课集合
      */
+    @Operation(summary = "查询教学班排课")
     @GetMapping("/{teachingClassId}/schedules")
-    public Result<List<ScheduleRespDTO>> listSchedule(@PathVariable Long teachingClassId) {
+    public Result<List<ScheduleRespDTO>> listSchedule(@Parameter(example = "1") @PathVariable Long teachingClassId) {
         return Result.success(scheduleService.listSchedule(teachingClassId));
     }
 
@@ -118,8 +128,9 @@ public class TeachingClassController {
      * @param requestParam    排课入参
      * @return 排课 ID
      */
+    @Operation(summary = "新增排课")
     @PostMapping("/{teachingClassId}/schedules")
-    public Result<Long> saveSchedule(@PathVariable Long teachingClassId,
+    public Result<Long> saveSchedule(@Parameter(example = "1") @PathVariable Long teachingClassId,
                                      @Valid @RequestBody ScheduleSaveReqDTO requestParam) {
         return Result.success("保存成功", scheduleService.saveSchedule(teachingClassId, requestParam));
     }
@@ -131,8 +142,9 @@ public class TeachingClassController {
      * @param requestParam    排课入参
      * @return 空响应
      */
+    @Operation(summary = "修改排课")
     @PutMapping("/{teachingClassId}/schedules")
-    public Result<Void> updateSchedule(@PathVariable Long teachingClassId,
+    public Result<Void> updateSchedule(@Parameter(example = "1") @PathVariable Long teachingClassId,
                                        @Valid @RequestBody ScheduleSaveReqDTO requestParam) {
         scheduleService.updateSchedule(teachingClassId, requestParam);
         return Result.success("保存成功", null);
@@ -145,8 +157,9 @@ public class TeachingClassController {
      * @param scheduleId      排课 ID
      * @return 空响应
      */
+    @Operation(summary = "删除排课")
     @DeleteMapping("/{teachingClassId}/schedules/{scheduleId}")
-    public Result<Void> removeSchedule(@PathVariable Long teachingClassId, @PathVariable Long scheduleId) {
+    public Result<Void> removeSchedule(@Parameter(example = "1") @PathVariable Long teachingClassId, @PathVariable Long scheduleId) {
         scheduleService.removeSchedule(teachingClassId, scheduleId);
         return Result.success("删除成功", null);
     }

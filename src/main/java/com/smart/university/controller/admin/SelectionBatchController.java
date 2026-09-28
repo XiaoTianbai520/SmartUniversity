@@ -1,4 +1,5 @@
 package com.smart.university.controller.admin;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.base.Result;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -28,6 +31,7 @@ import java.util.List;
 /**
  * 教务端选课批次管理接口
  */
+@Tag(name = "教务端-选课批次", description = "选课批次的增删改查、状态调整与教学班关联")
 @RestController
 @RequestMapping("/api/v1/admin/selection-batches")
 @RequireRole(RoleEnum.ADMIN)
@@ -42,6 +46,7 @@ public class SelectionBatchController {
      * @param requestParam 查询条件
      * @return 批次分页结果
      */
+    @Operation(summary = "分页查询选课批次")
     @GetMapping
     public Result<PageResult<SelectionBatchRespDTO>> pageSelectionBatch(SelectionBatchPageQueryReqDTO requestParam) {
         return Result.success(selectionBatchService.pageSelectionBatch(requestParam));
@@ -53,8 +58,9 @@ public class SelectionBatchController {
      * @param batchId 批次 ID
      * @return 批次信息
      */
+    @Operation(summary = "查询批次详情")
     @GetMapping("/{batchId}")
-    public Result<SelectionBatchRespDTO> getSelectionBatchDetail(@PathVariable Long batchId) {
+    public Result<SelectionBatchRespDTO> getSelectionBatchDetail(@Parameter(example = "1") @PathVariable Long batchId) {
         return Result.success(selectionBatchService.getSelectionBatchDetail(batchId));
     }
 
@@ -64,6 +70,7 @@ public class SelectionBatchController {
      * @param requestParam 批次入参
      * @return 批次 ID
      */
+    @Operation(summary = "创建选课批次")
     @PostMapping
     public Result<Long> saveSelectionBatch(@Valid @RequestBody SelectionBatchSaveReqDTO requestParam) {
         return Result.success("保存成功", selectionBatchService.saveSelectionBatch(requestParam));
@@ -76,8 +83,9 @@ public class SelectionBatchController {
      * @param requestParam 批次入参
      * @return 批次 ID
      */
+    @Operation(summary = "修改选课批次")
     @PutMapping("/{batchId}")
-    public Result<Long> updateSelectionBatch(@PathVariable Long batchId,
+    public Result<Long> updateSelectionBatch(@Parameter(example = "1") @PathVariable Long batchId,
                                              @Valid @RequestBody SelectionBatchSaveReqDTO requestParam) {
         requestParam.setId(batchId);
         return Result.success("保存成功", selectionBatchService.saveSelectionBatch(requestParam));
@@ -90,8 +98,9 @@ public class SelectionBatchController {
      * @param requestParam 状态入参
      * @return 空响应
      */
+    @Operation(summary = "修改批次状态")
     @PatchMapping("/{batchId}/status")
-    public Result<Void> updateSelectionBatchStatus(@PathVariable Long batchId,
+    public Result<Void> updateSelectionBatchStatus(@Parameter(example = "1") @PathVariable Long batchId,
                                                    @Valid @RequestBody SelectionBatchStatusUpdateReqDTO requestParam) {
         selectionBatchService.updateSelectionBatchStatus(batchId, requestParam);
         return Result.success("状态修改成功", null);
@@ -104,8 +113,9 @@ public class SelectionBatchController {
      * @param requestParam 教学班 ID 集合入参
      * @return 空响应
      */
+    @Operation(summary = "添加教学班到批次")
     @PostMapping("/{batchId}/teaching-classes")
-    public Result<Void> saveBatchTeachingClass(@PathVariable Long batchId,
+    public Result<Void> saveBatchTeachingClass(@Parameter(example = "1") @PathVariable Long batchId,
                                                @Valid @RequestBody BatchTeachingClassSaveReqDTO requestParam) {
         selectionBatchService.saveBatchTeachingClass(batchId, requestParam);
         return Result.success("添加成功", null);
@@ -117,8 +127,9 @@ public class SelectionBatchController {
      * @param batchId 批次 ID
      * @return 教学班集合
      */
+    @Operation(summary = "查询批次已开放的教学班")
     @GetMapping("/{batchId}/teaching-classes")
-    public Result<List<TeachingClassRespDTO>> listBatchTeachingClass(@PathVariable Long batchId) {
+    public Result<List<TeachingClassRespDTO>> listBatchTeachingClass(@Parameter(example = "1") @PathVariable Long batchId) {
         return Result.success(selectionBatchService.listBatchTeachingClass(batchId));
     }
 
@@ -129,8 +140,9 @@ public class SelectionBatchController {
      * @param teachingClassId 教学班 ID
      * @return 空响应
      */
+    @Operation(summary = "从批次移除教学班")
     @DeleteMapping("/{batchId}/teaching-classes/{teachingClassId}")
-    public Result<Void> removeBatchTeachingClass(@PathVariable Long batchId, @PathVariable Long teachingClassId) {
+    public Result<Void> removeBatchTeachingClass(@Parameter(example = "1") @PathVariable Long batchId, @PathVariable Long teachingClassId) {
         selectionBatchService.removeBatchTeachingClass(batchId, teachingClassId);
         return Result.success("移除成功", null);
     }

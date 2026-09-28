@@ -1,4 +1,5 @@
 package com.smart.university.controller.admin;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.base.Result;
@@ -18,11 +19,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 教务端教室管理接口
  */
+@Tag(name = "教务端-教室管理", description = "教室的增删改查与状态调整")
 @RestController
 @RequestMapping("/api/v1/admin/classrooms")
 @RequireRole(RoleEnum.ADMIN)
@@ -37,6 +41,7 @@ public class ClassroomController {
      * @param requestParam 查询条件
      * @return 教室分页结果
      */
+    @Operation(summary = "分页查询教室")
     @GetMapping
     public Result<PageResult<ClassroomRespDTO>> pageClassroom(ClassroomPageQueryReqDTO requestParam) {
         return Result.success(classroomService.pageClassroom(requestParam));
@@ -48,8 +53,9 @@ public class ClassroomController {
      * @param classroomId 教室 ID
      * @return 教室信息
      */
+    @Operation(summary = "查询教室详情")
     @GetMapping("/{classroomId}")
-    public Result<ClassroomRespDTO> getClassroomDetail(@PathVariable Long classroomId) {
+    public Result<ClassroomRespDTO> getClassroomDetail(@Parameter(example = "1") @PathVariable Long classroomId) {
         return Result.success(classroomService.getClassroomDetail(classroomId));
     }
 
@@ -59,6 +65,7 @@ public class ClassroomController {
      * @param requestParam 教室入参
      * @return 教室 ID
      */
+    @Operation(summary = "新增教室")
     @PostMapping
     public Result<Long> saveClassroom(@Valid @RequestBody ClassroomSaveReqDTO requestParam) {
         return Result.success("保存成功", classroomService.saveClassroom(requestParam));
@@ -71,8 +78,9 @@ public class ClassroomController {
      * @param requestParam 教室入参
      * @return 教室 ID
      */
+    @Operation(summary = "修改教室")
     @PutMapping("/{classroomId}")
-    public Result<Long> updateClassroom(@PathVariable Long classroomId,
+    public Result<Long> updateClassroom(@Parameter(example = "1") @PathVariable Long classroomId,
                                         @Valid @RequestBody ClassroomSaveReqDTO requestParam) {
         requestParam.setId(classroomId);
         return Result.success("保存成功", classroomService.saveClassroom(requestParam));
@@ -85,8 +93,9 @@ public class ClassroomController {
      * @param requestParam 状态入参
      * @return 空响应
      */
+    @Operation(summary = "修改教室状态")
     @PatchMapping("/{classroomId}/status")
-    public Result<Void> updateClassroomStatus(@PathVariable Long classroomId,
+    public Result<Void> updateClassroomStatus(@Parameter(example = "1") @PathVariable Long classroomId,
                                               @Valid @RequestBody StatusUpdateReqDTO requestParam) {
         classroomService.updateClassroomStatus(classroomId, requestParam);
         return Result.success("状态修改成功", null);

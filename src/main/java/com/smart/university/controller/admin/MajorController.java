@@ -1,4 +1,5 @@
 package com.smart.university.controller.admin;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.base.Result;
@@ -18,11 +19,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 教务端专业管理接口
  */
+@Tag(name = "教务端-专业管理", description = "专业的增删改查与状态调整")
 @RestController
 @RequestMapping("/api/v1/admin/majors")
 @RequireRole(RoleEnum.ADMIN)
@@ -37,6 +41,7 @@ public class MajorController {
      * @param requestParam 查询条件
      * @return 专业分页结果
      */
+    @Operation(summary = "分页查询专业")
     @GetMapping
     public Result<PageResult<MajorRespDTO>> pageMajor(MajorPageQueryReqDTO requestParam) {
         return Result.success(majorService.pageMajor(requestParam));
@@ -48,8 +53,9 @@ public class MajorController {
      * @param majorId 专业 ID
      * @return 专业信息
      */
+    @Operation(summary = "查询专业详情")
     @GetMapping("/{majorId}")
-    public Result<MajorRespDTO> getMajorDetail(@PathVariable Long majorId) {
+    public Result<MajorRespDTO> getMajorDetail(@Parameter(example = "1") @PathVariable Long majorId) {
         return Result.success(majorService.getMajorDetail(majorId));
     }
 
@@ -59,6 +65,7 @@ public class MajorController {
      * @param requestParam 专业入参
      * @return 专业 ID
      */
+    @Operation(summary = "新增专业")
     @PostMapping
     public Result<Long> saveMajor(@Valid @RequestBody MajorSaveReqDTO requestParam) {
         return Result.success("保存成功", majorService.saveMajor(requestParam));
@@ -71,8 +78,9 @@ public class MajorController {
      * @param requestParam 专业入参
      * @return 专业 ID
      */
+    @Operation(summary = "修改专业")
     @PutMapping("/{majorId}")
-    public Result<Long> updateMajor(@PathVariable Long majorId, @Valid @RequestBody MajorSaveReqDTO requestParam) {
+    public Result<Long> updateMajor(@Parameter(example = "1") @PathVariable Long majorId, @Valid @RequestBody MajorSaveReqDTO requestParam) {
         requestParam.setId(majorId);
         return Result.success("保存成功", majorService.saveMajor(requestParam));
     }
@@ -84,8 +92,9 @@ public class MajorController {
      * @param requestParam 状态入参
      * @return 空响应
      */
+    @Operation(summary = "修改专业状态")
     @PatchMapping("/{majorId}/status")
-    public Result<Void> updateMajorStatus(@PathVariable Long majorId,
+    public Result<Void> updateMajorStatus(@Parameter(example = "1") @PathVariable Long majorId,
                                           @Valid @RequestBody StatusUpdateReqDTO requestParam) {
         majorService.updateMajorStatus(majorId, requestParam);
         return Result.success("状态修改成功", null);

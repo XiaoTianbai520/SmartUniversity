@@ -1,4 +1,5 @@
 package com.smart.university.domain.dto.req;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import lombok.Data;
 import jakarta.validation.constraints.Min;
@@ -12,12 +13,14 @@ public class PageQueryReqDTO {
     /**
      * 页码，从 1 开始，默认 1
      */
+    @Schema(example = "1")
     @Min(value = 1, message = "页码最小为 1")
     private Integer page;
 
     /**
      * 每页条数，默认 20
      */
+    @Schema(example = "10")
     @Min(value = 1, message = "每页条数最小为 1")
     private Integer pageSize;
 

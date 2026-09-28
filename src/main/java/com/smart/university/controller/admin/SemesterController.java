@@ -1,4 +1,5 @@
 package com.smart.university.controller.admin;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.base.Result;
@@ -18,11 +19,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 教务端学期管理接口
  */
+@Tag(name = "教务端-学期管理", description = "学期的增删改查与状态调整")
 @RestController
 @RequestMapping("/api/v1/admin/semesters")
 @RequireRole(RoleEnum.ADMIN)
@@ -37,6 +41,7 @@ public class SemesterController {
      * @param requestParam 查询条件
      * @return 学期分页结果
      */
+    @Operation(summary = "分页查询学期")
     @GetMapping
     public Result<PageResult<SemesterRespDTO>> pageSemester(SemesterPageQueryReqDTO requestParam) {
         return Result.success(semesterService.pageSemester(requestParam));
@@ -48,8 +53,9 @@ public class SemesterController {
      * @param semesterId 学期 ID
      * @return 学期信息
      */
+    @Operation(summary = "查询学期详情")
     @GetMapping("/{semesterId}")
-    public Result<SemesterRespDTO> getSemesterDetail(@PathVariable Long semesterId) {
+    public Result<SemesterRespDTO> getSemesterDetail(@Parameter(example = "1") @PathVariable Long semesterId) {
         return Result.success(semesterService.getSemesterDetail(semesterId));
     }
 
@@ -59,6 +65,7 @@ public class SemesterController {
      * @param requestParam 学期入参
      * @return 学期 ID
      */
+    @Operation(summary = "新增学期")
     @PostMapping
     public Result<Long> saveSemester(@Valid @RequestBody SemesterSaveReqDTO requestParam) {
         return Result.success("保存成功", semesterService.saveSemester(requestParam));
@@ -71,8 +78,9 @@ public class SemesterController {
      * @param requestParam 学期入参
      * @return 学期 ID
      */
+    @Operation(summary = "修改学期")
     @PutMapping("/{semesterId}")
-    public Result<Long> updateSemester(@PathVariable Long semesterId,
+    public Result<Long> updateSemester(@Parameter(example = "1") @PathVariable Long semesterId,
                                        @Valid @RequestBody SemesterSaveReqDTO requestParam) {
         requestParam.setId(semesterId);
         return Result.success("保存成功", semesterService.saveSemester(requestParam));
@@ -85,8 +93,9 @@ public class SemesterController {
      * @param requestParam 状态入参
      * @return 空响应
      */
+    @Operation(summary = "修改学期状态")
     @PatchMapping("/{semesterId}/status")
-    public Result<Void> updateSemesterStatus(@PathVariable Long semesterId,
+    public Result<Void> updateSemesterStatus(@Parameter(example = "1") @PathVariable Long semesterId,
                                              @Valid @RequestBody SemesterStatusUpdateReqDTO requestParam) {
         semesterService.updateSemesterStatus(semesterId, requestParam);
         return Result.success("状态修改成功", null);

@@ -1,4 +1,5 @@
 package com.smart.university.controller;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.base.Result;
@@ -15,11 +16,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 系统通知接口
  */
+@Tag(name = "系统通知", description = "当前用户通知的分页查询、未读统计与已读标记")
 @RestController
 @RequestMapping("/api/v1/notifications")
 @RequireRole({RoleEnum.STUDENT, RoleEnum.TEACHER, RoleEnum.ADMIN})
@@ -34,6 +38,7 @@ public class NotificationController {
      * @param requestParam 查询条件
      * @return 通知分页结果
      */
+    @Operation(summary = "分页查询我的通知")
     @GetMapping
     public Result<PageResult<NotificationRespDTO>> pageNotification(
             @Valid NotificationPageQueryReqDTO requestParam) {
@@ -45,6 +50,7 @@ public class NotificationController {
      *
      * @return 未读通知数量
      */
+    @Operation(summary = "查询未读通知数量")
     @GetMapping("/unread-count")
     public Result<NotificationUnreadCountRespDTO> countUnread() {
         return Result.success(notificationService.countUnread());
@@ -56,8 +62,9 @@ public class NotificationController {
      * @param notificationId 通知 ID
      * @return 空响应
      */
+    @Operation(summary = "标记单条通知已读")
     @PutMapping("/{notificationId}/read")
-    public Result<Void> markRead(@PathVariable Long notificationId) {
+    public Result<Void> markRead(@Parameter(example = "1") @PathVariable Long notificationId) {
         notificationService.markRead(notificationId);
         return Result.success();
     }
@@ -67,6 +74,7 @@ public class NotificationController {
      *
      * @return 更新结果
      */
+    @Operation(summary = "标记全部通知已读")
     @PutMapping("/read-all")
     public Result<NotificationReadAllRespDTO> markAllRead() {
         return Result.success(notificationService.markAllRead());

@@ -1,4 +1,5 @@
 package com.smart.university.controller.student;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.base.Result;
@@ -13,11 +14,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 学生端课程查询接口
  */
+@Tag(name = "学生端-课程查询", description = "学生查询可选课程与课程详情，专业/年级/学期由后端推导")
 @RestController
 @RequestMapping("/api/v1/student/teaching-classes")
 @RequireRole(RoleEnum.STUDENT)
@@ -32,6 +36,7 @@ public class StudentCourseController {
      * @param requestParam 查询条件
      * @return 可选课程分页结果
      */
+    @Operation(summary = "查询可选课程", description = "专业、年级、学期、批次均由后端推导")
     @GetMapping
     public Result<PageResult<StudentTeachingClassRespDTO>> pageTeachingClass(
             StudentTeachingClassPageQueryReqDTO requestParam) {
@@ -44,8 +49,9 @@ public class StudentCourseController {
      * @param teachingClassId 教学班 ID
      * @return 课程详情
      */
+    @Operation(summary = "查询课程详情", description = "后端再次校验查看权限")
     @GetMapping("/{teachingClassId}")
-    public Result<StudentTeachingClassDetailRespDTO> getTeachingClassDetail(@PathVariable Long teachingClassId) {
+    public Result<StudentTeachingClassDetailRespDTO> getTeachingClassDetail(@Parameter(example = "1") @PathVariable Long teachingClassId) {
         return Result.success(
                 teachingClassService.getStudentTeachingClassDetail(UserContextHolder.getStudentId(), teachingClassId));
     }

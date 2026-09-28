@@ -86,6 +86,26 @@ rocketmq:
     send-message-timeout: 2000
     retry-times-when-send-failed: 2
 
+# Knife4j / OpenAPI 接口文档配置
+knife4j:
+  # 启用文档聚合（Knife4j 4.x 基于 springdoc-openapi）
+  enable: true
+  setting:
+    # 文档界面语言，中文
+    language: zh-CN
+    # 显示接口分组与版本
+    enable-version: true
+    # 调试时默认展开接口详情
+    default-expand-depth: 1
+
+# springdoc-openapi 基础配置（Knife4j 底层依赖）
+springdoc:
+  api-docs:
+    # OpenAPI JSON 描述路径，Knife4j 文档页会自动加载
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
 logging:
   level:
     root: info
