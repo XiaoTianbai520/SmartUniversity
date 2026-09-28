@@ -9,7 +9,7 @@ smart-university:
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.1.102:3306/edu_course_selection?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${smart-university.server-ip}:3306/edu_course_selection?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: 123456
     hikari:
@@ -22,7 +22,7 @@ spring:
 
   data:
     redis:
-      host: 192.168.1.102
+      host: ${smart-university.server-ip}
       port: 6379
       password: 123456
       database: 0
