@@ -152,7 +152,56 @@ com.smart.university
 - 管理端：17 个只读查询接口全 200；专业新增 / 修改 / 停用成功；专业编号重复返回 `40900 专业编号已存在`
 - 安全：越权访问返回 `40301 无接口访问权限`，未携带 Token 返回 `40101 未登录`
 
+## V1.1 业务增强版
+
+V1.1 在核心闭环之上补齐候补、通知、批量导入导出、成绩统计四条辅助业务线。
+
+设计文档位于 `docs/`：
+
+| 文档 | 内容 |
+|---|---|
+| `docs/V1.1_开发计划.md` | 任务分解、依赖关系、文件归属矩阵、公共契约、验收标准 |
+| `docs/V1.1_业务流程设计.md` | 候补选课、系统通知、批量导入导出、成绩统计的可执行流程 |
+| `docs/V1.1_接口清单.md` | 新增接口与 V1.1 错误码 |
+| `docs/V1.1_数据库增量设计.sql` | 候补字段扩展 + `notification` 表 |
+
+数据库升级：在 V1.0 建表脚本之后执行 `docs/V1.1_数据库增量设计.sql`。
+
+### V1.1 新增接口
+
+```
+POST   /api/v1/student/teaching-classes/{teachingClassId}/waitlist
+DELETE /api/v1/student/waitlist/{selectionId}
+GET    /api/v1/student/waitlist
+POST   /api/v1/admin/teaching-classes/{teachingClassId}/waitlist/promote
+
+GET    /api/v1/notifications
+GET    /api/v1/notifications/unread-count
+PUT    /api/v1/notifications/{notificationId}/read
+PUT    /api/v1/notifications/read-all
+
+POST   /api/v1/admin/students/import
+GET    /api/v1/admin/students/import-template
+GET    /api/v1/admin/students/export
+POST   /api/v1/admin/teachers/import
+GET    /api/v1/admin/teachers/import-template
+GET    /api/v1/admin/teachers/export
+GET    /api/v1/teacher/teaching-classes/{id}/students/export
+GET    /api/v1/teacher/teaching-classes/{id}/scores/import-template
+POST   /api/v1/teacher/teaching-classes/{id}/scores/import
+
+GET    /api/v1/teacher/teaching-classes/{id}/score-statistics
+```
+
+### V1.1 关键设计
+
+- **候补复用选课记录表**：`course_selection.status` 扩展 `WAITING`，唯一键 `(student_id, teaching_class_id)` 保证同一学生不会同时占用正式名额与候补队列；候补序号 `waitlist_no` 不插队、不重排，位次实时计算。
+- **通知走领域事件解耦**：业务侧调用 `NoticeEventPublisher.publish` 发布 `NoticeEvent`，由监听器在事务提交后落库，唯一键 `(notice_type, biz_id, receiver_user_id)` 保证幂等。
+- **导入逐行隔离**：Excel 导入不套外层大事务，单行失败记录行号与原因后继续，避免一个脏数据毁掉整个文件。
+
 ## 接口清单
+
+以下为 V1.0 接口：
 
 ```
 POST   /api/v1/auth/login
