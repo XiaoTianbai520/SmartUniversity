@@ -31,6 +31,7 @@
         <mybatis-plus.version>3.5.14</mybatis-plus.version>
         <rocketmq-starter.version>2.3.1</rocketmq-starter.version>
         <hutool.version>5.8.29</hutool.version>
+        <poi.version>5.4.1</poi.version>
     </properties>
 
 
@@ -99,6 +100,13 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
+        </dependency>
+
+        <!-- Apache POI：学生 / 教师 / 成绩 Excel 导入导出，仅支持 xlsx -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
         </dependency>
 
         <dependency>
