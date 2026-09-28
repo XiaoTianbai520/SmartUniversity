@@ -35,6 +35,7 @@ import com.smart.university.service.CourseSelectionService;
 import com.smart.university.service.ScheduleService;
 import com.smart.university.service.SelectionBatchService;
 import com.smart.university.service.SemesterService;
+import com.smart.university.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -77,6 +78,8 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
     private final SemesterService semesterService;
 
     private final SelectionBatchService selectionBatchService;
+
+    private final WaitlistService waitlistService;
 
     private final ScheduleService scheduleService;
 
@@ -171,6 +174,12 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
         restoreCapacity(selectionDO.getTeachingClassId());
         sendSelectionMessage(selectionId, studentDO.getId(), selectionDO.getTeachingClassId(),
                 selectionDO.getBatchId(), "WITHDRAW", now);
+        // 退课释放名额后尝试递补候补队列，递补失败不影响本次退课结果
+        try {
+            waitlistService.tryPromote(selectionDO.getTeachingClassId());
+        } catch (Exception ex) {
+            log.error("候补递补失败，teachingClassId：{}", selectionDO.getTeachingClassId(), ex);
+        }
     }
 
     @Override

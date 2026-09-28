@@ -41,14 +41,24 @@ public class CourseSelectionDO implements Serializable {
     private Long batchId;
 
     /**
-     * SELECTED/WITHDRAWN
+     * SELECTED/WITHDRAWN/WAITING
      */
     private SelectionStatusEnum status;
 
     /**
-     * 最近一次选课时间
+     * 候补序号，同一教学班内递增，取消候补后保留不清零
+     */
+    private Integer waitlistNo;
+
+    /**
+     * 最近一次选课时间，候补时同样记录发起候补的时间
      */
     private LocalDateTime selectedAt;
+
+    /**
+     * 候补递补为正式选课的时间，非递补产生的记录为空
+     */
+    private LocalDateTime promotedAt;
 
     /**
      * 最近一次退课时间

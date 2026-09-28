@@ -3,6 +3,7 @@ package com.smart.university.mapper;
 import com.smart.university.common.util.EnumParseUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.smart.university.domain.dto.req.StudentSelectionQueryReqDTO;
 import com.smart.university.domain.entity.CourseSelectionDO;
@@ -82,13 +83,96 @@ public interface CourseSelectionMapper extends BaseMapper<CourseSelectionDO> {
     }
 
     /**
-     * 统计学生在指定学期下满足条件的选课数量
+     * 统计教学班候补人数
      *
-     * @param requestParam 查询条件
-     * @return 数量
+     * @param teachingClassId 教学班 ID
+     * @return 候补人数
      */
+    default long countWaitingByTeachingClassId(Long teachingClassId) {
+        return selectCount(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .eq(CourseSelectionDO::getTeachingClassId, teachingClassId)
+                .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.WAITING));
+    }
+
+    /**
+     * 统计该教学班内排在本条候补记录之前的候补人数，用于实时计算位次
+     *
+     * @param teachingClassId 教学班 ID
+     * @param waitlistNo      当前候补序号
+     * @return 排在之前的候补人数
+     */
+    default long countWaitingAhead(Long teachingClassId, Integer waitlistNo) {
+        if (waitlistNo == null) {
+            return 0L;
+        }
+        return selectCount(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .eq(CourseSelectionDO::getTeachingClassId, teachingClassId)
+                .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.WAITING)
+                .lt(CourseSelectionDO::getWaitlistNo, waitlistNo));
+    }
+
+    /**
+     * 查询该教学班当前最大候补序号，无候补时返回 null
+     *
+     * @param teachingClassId 教学班 ID
+     * @return 最大候补序号
+     */
+    default Integer getMaxWaitlistNo(Long teachingClassId) {
+        CourseSelectionDO result = selectOne(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .select(CourseSelectionDO::getWaitlistNo)
+                .eq(CourseSelectionDO::getTeachingClassId, teachingClassId)
+                .isNotNull(CourseSelectionDO::getWaitlistNo)
+                .orderByDesc(CourseSelectionDO::getWaitlistNo)
+                .last("LIMIT 1"));
+        return result == null ? null : result.getWaitlistNo();
+    }
+
+    /**
+     * 查询教学班候补队列，按候补序号升序排列
+     *
+     * @param teachingClassId 教学班 ID
+     * @return 候补队列
+     */
+    default List<CourseSelectionDO> listWaitingByTeachingClassId(Long teachingClassId) {
+        return selectList(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .eq(CourseSelectionDO::getTeachingClassId, teachingClassId)
+                .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.WAITING)
+                .orderByAsc(CourseSelectionDO::getWaitlistNo)
+                .orderByAsc(CourseSelectionDO::getId));
+    }
+
+    /**
+     * 分页查询学生候补中的选课记录
+     *
+     * @param page         分页参数
+     * @param requestParam 查询条件，包含学生 ID 与学期 ID
+     * @return 分页结果
+     */
+    default IPage<CourseSelectionDO> listWaitlistByStudent(IPage<CourseSelectionDO> page,
+                                                           StudentSelectionQueryReqDTO requestParam) {
+        return selectPage(page, buildWaitlistQueryWrapper(requestParam));
+    }
     default long countSelectedByStudent(StudentSelectionQueryReqDTO requestParam) {
         return selectCount(buildStudentQueryWrapper(requestParam));
+    }
+
+    /**
+     * 构建学生候补队列查询条件，固定过滤候补状态
+     *
+     * @param requestParam 查询条件
+     * @return 查询条件包装器
+     */
+    default LambdaQueryWrapper<CourseSelectionDO> buildWaitlistQueryWrapper(StudentSelectionQueryReqDTO requestParam) {
+        LambdaQueryWrapper<CourseSelectionDO> queryWrapper = Wrappers.lambdaQuery();
+        queryWrapper.eq(requestParam.getStudentId() != null, CourseSelectionDO::getStudentId, requestParam.getStudentId());
+        queryWrapper.eq(CourseSelectionDO::getStatus, SelectionStatusEnum.WAITING);
+        if (requestParam.getSemesterId() != null) {
+            queryWrapper.inSql(CourseSelectionDO::getTeachingClassId,
+                    "SELECT id FROM teaching_class WHERE semester_id = " + requestParam.getSemesterId());
+        }
+        queryWrapper.orderByAsc(CourseSelectionDO::getWaitlistNo);
+        queryWrapper.orderByAsc(CourseSelectionDO::getId);
+        return queryWrapper;
     }
 
     /**
