@@ -178,7 +178,82 @@ public enum ResultCodeEnum {
     /**
      * 学生不属于该教学班
      */
-    STUDENT_NOT_IN_CLASS(40917, "学生不属于该教学班");
+    STUDENT_NOT_IN_CLASS(40917, "学生不属于该教学班"),
+
+    /**
+     * 当前不满足候补条件
+     */
+    WAITLIST_NOT_ALLOWED(40918, "当前不满足候补条件"),
+
+    /**
+     * 候补记录不存在
+     */
+    WAITLIST_NOT_EXIST(40919, "候补记录不存在"),
+
+    /**
+     * 已存在候补记录
+     */
+    WAITLIST_DUPLICATE(40920, "已存在候补记录"),
+
+    /**
+     * 教学班仍有余量，请直接选课
+     */
+    WAITLIST_CAPACITY_AVAILABLE(40921, "教学班仍有余量，请直接选课"),
+
+    /**
+     * 候补递补失败
+     */
+    WAITLIST_PROMOTE_FAILED(40922, "候补递补失败"),
+
+    /**
+     * 导入文件为空
+     */
+    IMPORT_FILE_EMPTY(40923, "导入文件为空"),
+
+    /**
+     * 导入文件格式错误，仅支持 xlsx
+     */
+    IMPORT_FILE_TYPE_ERROR(40924, "导入文件格式错误，仅支持 xlsx"),
+
+    /**
+     * 导入文件解析失败
+     */
+    IMPORT_FILE_PARSE_ERROR(40925, "导入文件解析失败"),
+
+    /**
+     * 导入数据为空
+     */
+    IMPORT_DATA_EMPTY(40926, "导入数据为空"),
+
+    /**
+     * 导出数据为空
+     */
+    EXPORT_DATA_EMPTY(40927, "导出数据为空"),
+
+    /**
+     * 通知不存在
+     */
+    NOTIFICATION_NOT_EXIST(40928, "通知不存在"),
+
+    /**
+     * 专业不存在
+     */
+    MAJOR_NOT_EXIST(40929, "专业不存在"),
+
+    /**
+     * 年级不存在
+     */
+    GRADE_NOT_EXIST(40930, "年级不存在"),
+
+    /**
+     * 行政班级不存在
+     */
+    ACADEMIC_CLASS_NOT_EXIST(40931, "行政班级不存在"),
+
+    /**
+     * 成绩必须在 0 到 100 之间
+     */
+    SCORE_IMPORT_OUT_OF_RANGE(40932, "成绩必须在 0 到 100 之间");
 
     /**
      * 业务错误码

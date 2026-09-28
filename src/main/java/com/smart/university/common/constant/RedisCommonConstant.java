@@ -59,6 +59,16 @@ public final class RedisCommonConstant {
     public static final String CURRENT_SELECTION_BATCH_KEY = KEY_PREFIX + "selection-batch:current:%s";
 
     /**
+     * 教学班候补人数缓存，拼接教学班 ID
+     */
+    public static final String TEACHING_CLASS_WAITING_COUNT_KEY = KEY_PREFIX + "teaching-class:waiting-count:%s";
+
+    /**
+     * 教学班候补序号自增，拼接教学班 ID
+     */
+    public static final String TEACHING_CLASS_WAITLIST_NO_KEY = KEY_PREFIX + "teaching-class:waitlist-no:%s";
+
+    /**
      * 登录 Token 过期时间（秒）
      */
     public static final long LOGIN_TOKEN_TTL_SECONDS = 8 * 60 * 60L;
@@ -72,4 +82,9 @@ public final class RedisCommonConstant {
      * 选课防重锁过期时间（秒）
      */
     public static final long SELECTION_LOCK_TTL_SECONDS = 10L;
+
+    /**
+     * 教学班候补人数缓存过期时间（秒）
+     */
+    public static final long TEACHING_CLASS_WAITING_COUNT_TTL_SECONDS = 24 * 60 * 60L;
 }

@@ -90,4 +90,24 @@ public final class RedisKeyUtil {
     public static String buildCurrentSelectionBatchKey(Long semesterId) {
         return String.format(RedisCommonConstant.CURRENT_SELECTION_BATCH_KEY, semesterId);
     }
+
+    /**
+     * 构建教学班候补人数缓存 Key
+     *
+     * @param teachingClassId 教学班 ID
+     * @return Redis Key
+     */
+    public static String buildTeachingClassWaitingCountKey(Long teachingClassId) {
+        return String.format(RedisCommonConstant.TEACHING_CLASS_WAITING_COUNT_KEY, teachingClassId);
+    }
+
+    /**
+     * 构建教学班候补序号自增 Key
+     *
+     * @param teachingClassId 教学班 ID
+     * @return Redis Key
+     */
+    public static String buildTeachingClassWaitlistNoKey(Long teachingClassId) {
+        return String.format(RedisCommonConstant.TEACHING_CLASS_WAITLIST_NO_KEY, teachingClassId);
+    }
 }

@@ -18,7 +18,12 @@ public enum SelectionStatusEnum {
     /**
      * 已退课
      */
-    WITHDRAWN("WITHDRAWN", "已退课");
+    WITHDRAWN("WITHDRAWN", "已退课"),
+
+    /**
+     * 候补中
+     */
+    WAITING("WAITING", "候补中");
 
     /**
      * 数据库存储值
