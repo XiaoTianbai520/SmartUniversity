@@ -16,6 +16,32 @@ spring:
     time-zone: GMT+8
   mvc:
     throw-exception-if-no-handler-found: true
+  # 数据库 / Redis：主机 IP 由各环境的 smart-university.server-ip 提供
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${smart-university.server-ip}:3306/edu_course_selection?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    hikari:
+      pool-name: SmartUniversityHikariPool
+      minimum-idle: 5
+      maximum-pool-size: 30
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  data:
+    redis:
+      host: ${smart-university.server-ip}
+      port: 6379
+      password: 123456
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          enabled: true
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
 
 # MyBatis-Plus
 mybatis-plus:
@@ -35,9 +61,8 @@ mybatis-plus:
 
 # 平台自定义配置
 smart-university:
-  # 服务器统一 IP：MySQL / Redis / RocketMQ 等所有服务均部署在该主机，
-  # 需要迁移服务器时只需修改此一处
-  server-ip: 100.83.74.68
+  # 服务器统一 IP：MySQL / Redis / RocketMQ 等所有服务均部署在该主机。
+  # 该值按环境拆分：开发环境见 application-dev.yml，生产环境见 application-prod.yml
   # 接口统一前缀，与接口文档 V1 保持一致
   api-prefix: /api/v1
   auth:

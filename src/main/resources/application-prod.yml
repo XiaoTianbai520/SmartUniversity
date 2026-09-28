@@ -1,0 +1,3 @@
+# 生产环境：应用与 MySQL / Redis / RocketMQ 同机部署，走本机回环地址
+smart-university:
+  server-ip: 127.0.0.1

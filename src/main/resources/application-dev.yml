@@ -1,35 +1,3 @@
+# 开发环境：MySQL / Redis / RocketMQ 均部署在测试服务器
 smart-university:
-  # RocketMQ NameServer 与 Broker 已在 192.168.1.102 就绪，本地可直接开启
-  mq:
-    enabled: true
-  # Redis 已就绪，选课走 Redis 原子预扣减
-  selection:
-    redis-deduct-enabled: true
-
-spring:
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${smart-university.server-ip}:3306/edu_course_selection?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
-    hikari:
-      pool-name: SmartUniversityHikariPool
-      minimum-idle: 5
-      maximum-pool-size: 30
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-
-  data:
-    redis:
-      host: ${smart-university.server-ip}
-      port: 6379
-      password: 123456
-      database: 0
-      timeout: 3000ms
-      lettuce:
-        pool:
-          enabled: true
-          max-active: 16
-          max-idle: 8
-          min-idle: 2
+  server-ip: 100.83.74.68
