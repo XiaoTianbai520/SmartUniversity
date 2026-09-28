@@ -11,6 +11,14 @@
         <relativePath/>
     </parent>
 
+    <developers>
+        <developer>
+            <name>苏俊毅</name>
+            <email>c13383413150@163.com</email>
+        </developer>
+
+    </developers>
+
     <groupId>com.smart.university</groupId>
     <artifactId>smart-university</artifactId>
     <version>1.0.0-SNAPSHOT</version>
@@ -24,6 +32,8 @@
         <rocketmq-starter.version>2.3.1</rocketmq-starter.version>
         <hutool.version>5.8.29</hutool.version>
     </properties>
+
+
 
     <dependencies>
         <!-- Web -->
