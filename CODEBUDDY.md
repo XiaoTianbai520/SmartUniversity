@@ -4,7 +4,7 @@ This file provides guidance to CodeBuddy Code when working with code in this rep
 
 ## 项目简介
 
-高校智慧教务选课平台（SmartUniversity）后端，Spring Boot 3 单体应用，接口契约对齐 `doc/高校智慧教务选课平台_V1_接口文档.md`，命名对齐《命名规范》（已封装为用户级技能 `code-naming-convention`）。
+高校智慧教务选课平台（SmartUniversity）后端，Spring Boot 3 单体应用，接口契约对齐 `docs/接口清单.md`（V1.0 与 V1.1 全量接口的唯一契约文档，由原 V1.0 接口文档与 V1.1 接口清单合并而成），命名对齐《命名规范》（已封装为用户级技能 `code-naming-convention`）。
 
 ## 常用命令
 
@@ -28,7 +28,7 @@ mvn -B clean package -DskipTests
 
 MySQL 8.4 / Redis / RocketMQ 均在 `192.168.1.102`（root / 123456），配置在 `src/main/resources/application-dev.yml`。本机没有 MySQL 与 RocketMQ 服务端，只能编译 + 连远程库做冒烟。
 
-- 建表：执行 `doc/高校智慧教务选课平台_V1_数据库建表.sql`（库名 `edu_course_selection`）。
+- 建表：执行 `docs/高校智慧教务选课平台_V1_数据库建表.sql`（库名 `edu_course_selection`），再执行 `docs/V1.1_数据库增量设计.sql`。
 - 灌测试数据：`db/test-data.sql`。
 - 本机 mysql 客户端：`C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe`。
 
@@ -90,7 +90,7 @@ com.smart.university
 3. XML 只保留联表查询，当前仅 `TeachingClassMapper.xml`（管理端课程名模糊匹配、学生端可见范围 3 个 EXISTS），且不写 LIMIT。跨表简单过滤改用 `inSql` 子查询。
 4. 7 个 DO 字段是枚举类型（教学班/学期/选课/成绩/批次的 `status`、`CourseDO.courseType`、`SysUserDO.role`），Wrapper 里必须传枚举实例，从字符串 DTO 转换走 `EnumParseUtil.parseOrNull`。
 
-**错误码**：`ResultCodeEnum` 覆盖接口文档 26 个业务码，另补 `40900 数据已存在` 兜底唯一键冲突（`GlobalExceptionHandler` 捕获 `DuplicateKeyException`）。
+**错误码**：`ResultCodeEnum` 覆盖 `docs/接口清单.md` 声明的业务码，V1.0 段为 40001~40917，V1.1 段扩展至 40932，另补 `40900 数据已存在` 兜底唯一键冲突（`GlobalExceptionHandler` 捕获 `DuplicateKeyException`）。
 
 **RocketMQ**：一个 Topic `edu_smart-university_topic`，业务用 Tag 区分；生产者组 `edu_smart-university_course-selection_pg`。无 MQ 环境时把 `smart-university.mq.enabled` 置 `false` 即可正常启动。
 
@@ -98,8 +98,14 @@ com.smart.university
 
 ## 文档索引
 
-- `doc/` —— V1：需求文档、接口文档、业务流程、ER 与数据库模型、建表 SQL、版本规划
-- `docs/` —— V1.1：开发计划、接口清单、业务流程、数据库增量设计 SQL
+文档统一放在 `docs/`（早期分散在 `doc/` 与 `docs/`，已合并）：
+
+- `docs/接口清单.md` —— 全量接口契约：V1.0 基础接口 + V1.1 新增接口、业务错误码、权限矩阵
+- `docs/高校智慧教务选课平台_V1_数据库建表.sql` —— V1.0 建表脚本
+- `docs/高校智慧教务选课平台_V1_ER图与数据库模型设计.md` —— ER 与数据库模型
+- `docs/高校智慧教务选课平台_V1业务流程设计.md` —— V1.0 业务流程
+- `docs/V1.1_开发计划.md` / `V1.1_业务流程设计.md` / `V1.1_数据库增量设计.sql` —— V1.1 设计与增量
+- `docs/高校智慧教务选课平台_需求文档.md` / `版本开发规划.md` —— 需求与版本规划
 - `README.md` —— 技术栈、目录结构、MyBatis-Plus 约定、安全设计、启动步骤
 
 ## 开发原则（来自 `.workbuddy/CODEBUDDY.md`）
