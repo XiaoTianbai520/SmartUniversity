@@ -5,6 +5,7 @@ import com.smart.university.web.interceptor.AuthenticationInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -13,6 +14,7 @@ import java.util.List;
 /**
  * Web 层配置，注册鉴权拦截器并声明免鉴权路径
  */
+@EnableScheduling
 @Configuration
 @RequiredArgsConstructor
 public class WebConfiguration implements WebMvcConfigurer {

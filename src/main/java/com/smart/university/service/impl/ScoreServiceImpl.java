@@ -1,9 +1,15 @@
 package com.smart.university.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import com.smart.university.common.context.UserContextHolder;
 import com.smart.university.common.enums.ResultCodeEnum;
+import com.smart.university.common.enums.RoleEnum;
 import com.smart.university.common.exception.BizException;
+import com.smart.university.domain.event.NoticeEvent;
+import com.smart.university.domain.event.NoticeEventPublisher;
+import com.smart.university.domain.event.NoticeTargetResolver;
+import com.smart.university.domain.enums.NoticeTypeEnum;
 import com.smart.university.domain.entity.CourseDO;
 import com.smart.university.domain.entity.CourseSelectionDO;
 import com.smart.university.domain.entity.ScoreDO;
@@ -29,7 +35,6 @@ import com.smart.university.service.ScoreService;
 import com.smart.university.service.SemesterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,6 +75,10 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, ScoreDO> implemen
     private final CourseMapper courseMapper;
 
     private final SemesterService semesterService;
+
+    private final NoticeEventPublisher noticeEventPublisher;
+
+    private final NoticeTargetResolver noticeTargetResolver;
 
     /**
      * 成绩发布消息生产者，未开启消息队列时容器中不存在该 Bean
@@ -168,6 +177,7 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, ScoreDO> implemen
                 log.error("成绩发布消息发送失败，teachingClassId：{}", teachingClassId, ex);
             }
         }
+        publishScoreNotice(teachingClassId, selectionIds, publishedCount, now);
         ScorePublishRespDTO result = new ScorePublishRespDTO();
         result.setPublishedCount(publishedCount);
         return result;
@@ -200,6 +210,57 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, ScoreDO> implemen
             result.setPublishedAt(each.getPublishedAt());
             return result;
         }).toList();
+    }
+
+    /**
+     * 发布成绩通知，仅通知本次真正被发布的学生，通知失败不影响成绩发布结果
+     *
+     * @param teachingClassId 教学班 ID
+     * @param selectionIds    本次参与发布的选课记录 ID 集合
+     * @param publishedCount  本次发布成功的条数
+     * @param publishedAt     本次发布时间
+     */
+    private void publishScoreNotice(Long teachingClassId, List<Long> selectionIds, int publishedCount,
+                                    LocalDateTime publishedAt) {
+        if (publishedCount <= 0) {
+            return;
+        }
+        try {
+            List<Long> publishedSelectionIds = scoreMapper.listScoreBySelectionIds(selectionIds).stream()
+                    .filter(each -> ScoreStatusEnum.PUBLISHED == each.getStatus()
+                            && publishedAt.equals(each.getPublishedAt()))
+                    .map(ScoreDO::getCourseSelectionId)
+                    .toList();
+            if (CollUtil.isEmpty(publishedSelectionIds)) {
+                return;
+            }
+            String courseName = getCourseName(teachingClassId);
+            noticeEventPublisher.publish(NoticeEvent.builder()
+                    .noticeType(NoticeTypeEnum.SCORE_PUBLISHED)
+                    .title(NoticeTypeEnum.SCORE_PUBLISHED.getDefaultTitle())
+                    .content(StrUtil.format("《{}》成绩已发布，请前往查看。", courseName))
+                    .receiverUserIds(noticeTargetResolver.listUserIdsBySelectionIds(publishedSelectionIds))
+                    .receiverRole(RoleEnum.STUDENT)
+                    .bizId(teachingClassId)
+                    .build());
+        } catch (Exception ex) {
+            log.error("成绩发布通知发布失败，teachingClassId：{}", teachingClassId, ex);
+        }
+    }
+
+    /**
+     * 获取教学班所属课程名称，课程缺失时返回空串
+     *
+     * @param teachingClassId 教学班 ID
+     * @return 课程名称
+     */
+    private String getCourseName(Long teachingClassId) {
+        TeachingClassDO teachingClassDO = teachingClassMapper.getTeachingClassById(teachingClassId);
+        if (teachingClassDO == null) {
+            return StrUtil.EMPTY;
+        }
+        CourseDO courseDO = courseMapper.getCourseById(teachingClassDO.getCourseId());
+        return courseDO == null ? StrUtil.EMPTY : courseDO.getCourseName();
     }
 
     /**

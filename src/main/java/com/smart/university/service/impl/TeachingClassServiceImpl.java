@@ -2,12 +2,18 @@ package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.context.UserContextHolder;
 import com.smart.university.common.enums.ResultCodeEnum;
+import com.smart.university.common.enums.RoleEnum;
 import com.smart.university.common.exception.BizException;
+import com.smart.university.domain.event.NoticeEvent;
+import com.smart.university.domain.event.NoticeEventPublisher;
+import com.smart.university.domain.event.NoticeTargetResolver;
+import com.smart.university.domain.enums.NoticeTypeEnum;
 import com.smart.university.domain.entity.AcademicClassDO;
 import com.smart.university.domain.entity.ClassroomDO;
 import com.smart.university.domain.entity.CourseDO;
@@ -53,18 +59,25 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.SelectionBatchService;
 import com.smart.university.service.SemesterService;
 import com.smart.university.service.TeachingClassService;
+import com.smart.university.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
  * 教学班服务实现
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, TeachingClassDO> implements TeachingClassService {
@@ -97,6 +110,12 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
 
     private final SelectionBatchService selectionBatchService;
 
+    private final WaitlistService waitlistService;
+
+    private final NoticeEventPublisher noticeEventPublisher;
+
+    private final NoticeTargetResolver noticeTargetResolver;
+
     @Override
     public PageResult<TeachingClassRespDTO> pageTeachingClass(TeachingClassPageQueryReqDTO requestParam) {
         Page<TeachingClassDO> page = Page.of(requestParam.getCurrentPage(), requestParam.getLimit());
@@ -119,8 +138,10 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
             throw new BizException(ResultCodeEnum.COURSE_NOT_EXIST);
         }
         TeachingClassStatusEnum statusEnum = TeachingClassStatusEnum.DRAFT;
+        TeachingClassDO originTeachingClassDO = null;
         if (requestParam.getId() != null) {
-            statusEnum = getTeachingClassById(requestParam.getId()).getStatus();
+            originTeachingClassDO = getTeachingClassById(requestParam.getId());
+            statusEnum = originTeachingClassDO.getStatus();
         } else if (teachingClassMapper.getTeachingClassByClassCode(requestParam.getClassCode()) != null) {
             throw new BizException(ResultCodeEnum.TEACHING_CLASS_CODE_EXIST);
         }
@@ -153,10 +174,12 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
             teachingClassGradeDO.setGradeId(each);
             teachingClassGradeMapper.saveTeachingClassGrade(teachingClassGradeDO);
         }
+        notifyTeachingClassAdjusted(originTeachingClassDO, teachingClassDO);
         return teachingClassId;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateTeachingClassStatus(Long teachingClassId, TeachingClassStatusUpdateReqDTO requestParam) {
         TeachingClassStatusEnum statusEnum = TeachingClassStatusEnum.getByCode(requestParam.getStatus());
         if (statusEnum == null) {
@@ -166,6 +189,16 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
         teachingClassDO.setId(teachingClassId);
         teachingClassDO.setStatus(statusEnum);
         teachingClassMapper.updateTeachingClass(teachingClassDO);
+        if (TeachingClassStatusEnum.CANCELLED != statusEnum && TeachingClassStatusEnum.CLOSED != statusEnum) {
+            return;
+        }
+        try {
+            String action = TeachingClassStatusEnum.CANCELLED == statusEnum ? "已取消" : "已关闭";
+            publishCourseAdjustedNotice(teachingClassId,
+                    StrUtil.format("教学班【{}】{}，请及时调整你的选课。", getTeachingClassName(teachingClassId), action));
+        } catch (Exception ex) {
+            log.error("教学班状态变更通知发布失败，teachingClassId：{}", teachingClassId, ex);
+        }
     }
 
     @Override
@@ -356,6 +389,102 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
             return result;
         }).toList();
         return new PageResult<>(records, requestParam.getCurrentPage(), requestParam.getLimit(), total);
+    }
+
+    /**
+     * 教学班信息变更后通知已选学生，仅在修改场景生效，通知失败不影响保存结果
+     *
+     * @param originTeachingClassDO 修改前的教学班，新增场景为 null
+     * @param teachingClassDO       修改后的教学班
+     */
+    private void notifyTeachingClassAdjusted(TeachingClassDO originTeachingClassDO, TeachingClassDO teachingClassDO) {
+        if (originTeachingClassDO == null) {
+            return;
+        }
+        try {
+            List<String> changeList = new ArrayList<>();
+            if (!Objects.equals(originTeachingClassDO.getTeacherId(), teachingClassDO.getTeacherId())) {
+                changeList.add("任课教师变更");
+            }
+            Integer originCapacity = originTeachingClassDO.getCapacity();
+            Integer capacity = teachingClassDO.getCapacity();
+            boolean capacityChanged = !Objects.equals(originCapacity, capacity);
+            if (capacityChanged) {
+                changeList.add(StrUtil.format("容量由 {} 调整为 {}", originCapacity, capacity));
+            }
+            if (CollUtil.isEmpty(changeList)) {
+                return;
+            }
+            publishCourseAdjustedNotice(teachingClassDO.getId(), StrUtil.format("教学班【{}】信息调整：{}，请关注。",
+                    teachingClassDO.getClassName(), String.join("、", changeList)));
+            if (capacityChanged && originCapacity != null && capacity != null && capacity > originCapacity) {
+                promoteWaitlistAfterCommit(teachingClassDO.getId());
+            }
+        } catch (Exception ex) {
+            log.error("教学班调整通知发布失败，teachingClassId：{}", teachingClassDO.getId(), ex);
+        }
+    }
+
+    /**
+     * 容量上调后触发候补递补，注册为事务提交后的回调执行
+     *
+     * @param teachingClassId 教学班 ID
+     */
+    private void promoteWaitlistAfterCommit(Long teachingClassId) {
+        // 递补本身是 @Transactional(PROPAGATION_REQUIRED)，若在本次修改的事务内同步调用，
+        // 递补抛出未被其自身吞掉的异常时会把共享事务标记为 rollback-only，
+        // 导致教务一个纯配置性质的容量调整连同本次变更一起回滚
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            promoteWaitlistSafely(teachingClassId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                promoteWaitlistSafely(teachingClassId);
+            }
+        });
+    }
+
+    /**
+     * 执行候补递补并吞掉异常，递补失败不影响容量调整结果，可由教务手动触发兜底
+     *
+     * @param teachingClassId 教学班 ID
+     */
+    private void promoteWaitlistSafely(Long teachingClassId) {
+        try {
+            waitlistService.tryPromote(teachingClassId);
+        } catch (Exception ex) {
+            log.error("容量上调后候补递补失败，teachingClassId：{}", teachingClassId, ex);
+        }
+    }
+
+    /**
+     * 发布课程调整通知，业务 ID 传空以保证每次调整都产生一条新通知
+     *
+     * @param teachingClassId 教学班 ID
+     * @param content         通知正文
+     */
+    private void publishCourseAdjustedNotice(Long teachingClassId, String content) {
+        noticeEventPublisher.publish(NoticeEvent.builder()
+                .noticeType(NoticeTypeEnum.COURSE_ADJUSTED)
+                .title(NoticeTypeEnum.COURSE_ADJUSTED.getDefaultTitle())
+                .content(content)
+                .receiverUserIds(noticeTargetResolver.listUserIdsByTeachingClassId(teachingClassId))
+                .receiverRole(RoleEnum.STUDENT)
+                .bizId(null)
+                .build());
+    }
+
+    /**
+     * 获取教学班名称，教学班缺失时返回空串
+     *
+     * @param teachingClassId 教学班 ID
+     * @return 教学班名称
+     */
+    private String getTeachingClassName(Long teachingClassId) {
+        TeachingClassDO teachingClassDO = teachingClassMapper.getTeachingClassById(teachingClassId);
+        return teachingClassDO == null ? StrUtil.EMPTY : teachingClassDO.getClassName();
     }
 
     /**

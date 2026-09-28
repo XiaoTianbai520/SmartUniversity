@@ -2,18 +2,24 @@ package com.smart.university.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smart.university.common.base.PageResult;
 import com.smart.university.common.enums.ResultCodeEnum;
+import com.smart.university.common.enums.RoleEnum;
 import com.smart.university.common.exception.BizException;
 import com.smart.university.domain.entity.CourseDO;
 import com.smart.university.domain.entity.CourseSelectionDO;
 import com.smart.university.domain.entity.SelectionBatchClassDO;
 import com.smart.university.domain.entity.SelectionBatchDO;
 import com.smart.university.domain.entity.TeachingClassDO;
+import com.smart.university.domain.enums.NoticeTypeEnum;
 import com.smart.university.domain.enums.SelectionBatchStatusEnum;
 import com.smart.university.domain.enums.TeachingClassStatusEnum;
+import com.smart.university.domain.event.NoticeEvent;
+import com.smart.university.domain.event.NoticeEventPublisher;
+import com.smart.university.domain.event.NoticeTargetResolver;
 import com.smart.university.domain.dto.req.BatchTeachingClassSaveReqDTO;
 import com.smart.university.domain.dto.req.SelectionBatchPageQueryReqDTO;
 import com.smart.university.domain.dto.req.SelectionBatchSaveReqDTO;
@@ -28,9 +34,12 @@ import com.smart.university.mapper.TeachingClassMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.SelectionBatchService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -39,9 +48,15 @@ import java.util.stream.Collectors;
 /**
  * 选课批次服务实现
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper, SelectionBatchDO> implements SelectionBatchService {
+
+    /**
+     * 选课时间展示格式
+     */
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final SelectionBatchMapper selectionBatchMapper;
 
@@ -52,6 +67,10 @@ public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper,
     private final CourseSelectionMapper courseSelectionMapper;
 
     private final CourseMapper courseMapper;
+
+    private final NoticeEventPublisher noticeEventPublisher;
+
+    private final NoticeTargetResolver noticeTargetResolver;
 
     @Override
     public PageResult<SelectionBatchRespDTO> pageSelectionBatch(SelectionBatchPageQueryReqDTO requestParam) {
@@ -94,6 +113,7 @@ public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper,
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateSelectionBatchStatus(Long batchId, SelectionBatchStatusUpdateReqDTO requestParam) {
         SelectionBatchStatusEnum statusEnum = SelectionBatchStatusEnum.getByCode(requestParam.getStatus());
         if (statusEnum == null) {
@@ -103,6 +123,16 @@ public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper,
         batchDO.setId(batchId);
         batchDO.setStatus(statusEnum);
         selectionBatchMapper.updateSelectionBatch(batchDO);
+        if (SelectionBatchStatusEnum.IN_PROGRESS != statusEnum && SelectionBatchStatusEnum.ENDED != statusEnum) {
+            return;
+        }
+        SelectionBatchDO targetBatchDO = selectionBatchMapper.getSelectionBatchById(batchId);
+        if (targetBatchDO == null) {
+            return;
+        }
+        NoticeTypeEnum noticeTypeEnum = SelectionBatchStatusEnum.IN_PROGRESS == statusEnum
+                ? NoticeTypeEnum.SELECTION_START : NoticeTypeEnum.SELECTION_END;
+        publishBatchNotice(noticeTypeEnum, targetBatchDO);
     }
 
     @Override
@@ -182,6 +212,41 @@ public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper,
             throw new BizException(ResultCodeEnum.SELECTION_BATCH_NOT_EXIST);
         }
         return result;
+    }
+
+    /**
+     * 发布选课开始 / 结束通知，接收人按学生角色全量解析，通知失败不影响状态变更结果
+     *
+     * @param noticeTypeEnum 通知类型
+     * @param batchDO        选课批次
+     */
+    private void publishBatchNotice(NoticeTypeEnum noticeTypeEnum, SelectionBatchDO batchDO) {
+        try {
+            String actionText = NoticeTypeEnum.SELECTION_START == noticeTypeEnum ? "已经开始" : "已经结束";
+            noticeEventPublisher.publish(NoticeEvent.builder()
+                    .noticeType(noticeTypeEnum)
+                    .title(noticeTypeEnum.getDefaultTitle())
+                    .content(StrUtil.format("选课批次【{}】{}，选课时间：{}，请及时登录系统完成选课。",
+                            batchDO.getBatchName(), actionText, buildBatchTimeText(batchDO)))
+                    .receiverUserIds(noticeTargetResolver.listUserIdsByRole(RoleEnum.STUDENT))
+                    .receiverRole(RoleEnum.STUDENT)
+                    .bizId(batchDO.getId())
+                    .build());
+        } catch (Exception ex) {
+            log.error("选课批次通知发布失败，batchId：{}，通知类型：{}", batchDO.getId(), noticeTypeEnum, ex);
+        }
+    }
+
+    /**
+     * 拼接批次选课时间段的中文描述
+     *
+     * @param batchDO 选课批次
+     * @return 选课时间描述
+     */
+    private String buildBatchTimeText(SelectionBatchDO batchDO) {
+        String startText = batchDO.getStartTime() == null ? StrUtil.EMPTY : batchDO.getStartTime().format(TIME_FORMATTER);
+        String endText = batchDO.getEndTime() == null ? StrUtil.EMPTY : batchDO.getEndTime().format(TIME_FORMATTER);
+        return StrUtil.format("{} 至 {}", startText, endText);
     }
 
     private SelectionBatchRespDTO convertToRespDTO(SelectionBatchDO batchDO) {
