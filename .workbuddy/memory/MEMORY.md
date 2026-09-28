@@ -10,6 +10,9 @@
   `docs/V1.1_业务流程设计.md`、`docs/V1.1_数据库增量设计.sql`。
 - V1.0 文档（已移入 `docs/`，文件名保留原样）：`高校智慧教务选课平台_需求文档.md`、`_版本开发规划.md`、
   `_V1业务流程设计.md`、`_V1_ER图与数据库模型设计.md`、`_V1_数据库建表.sql`。
+- **外部旧源 `高校智慧教务选课平台_V1_接口文档.md`（在 `高校智慧教务选课平台/` 父目录，不在 `docs/`）已过时**：它是纯 V1.0 源，被 `docs/接口清单.md` 取代。注意两处冲突——
+  ① 章节编号错位：外部 §22~§28 = 事务边界/Controller/Service/DTO/优先级/总览/后续预留；接口清单 §22~§25 已被 V1.1（候补/通知/导入导出/成绩统计）占用，建议类挪到 §26~§32。
+  ② 外部 §28「后续预留」里的候补路径 `/student/waitlists`、通知已读 `PATCH /notifications/{id}/read` 与实现不符——实际代码与接口清单 §22/§23 是 `POST /student/teaching-classes/{id}/waitlist`、`PUT /notifications/{id}/read`（另加 `unread-count`/`read-all`）。以 `docs/接口清单.md` + 代码为准。
 
 ## 技术栈与版本红线
 
