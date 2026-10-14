@@ -98,8 +98,6 @@ CREATE TABLE `grade_cohort` (
         ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
 
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_grade_name` (`grade_name`),
-    UNIQUE KEY `uk_grade_entry_year` (`entry_year`),
 
     CONSTRAINT `chk_grade_status`
         CHECK (`status` IN (0, 1)),

@@ -2,6 +2,8 @@ package com.smart.university.domain.dto.req;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import lombok.Data;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotBlank;
 
@@ -29,5 +31,7 @@ public class GradeSaveReqDTO {
      */
     @Schema(example = "2026")
     @NotNull(message = "入学年份不能为空")
+    @Min(value = 2000, message = "入学年份须在 2000-2200 之间")
+    @Max(value = 2200, message = "入学年份须在 2000-2200 之间")
     private Integer entryYear;
 }

@@ -3,6 +3,7 @@ package com.smart.university.common.exception;
 import com.smart.university.common.base.Result;
 import com.smart.university.common.enums.ResultCodeEnum;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
@@ -72,6 +73,19 @@ public class GlobalExceptionHandler {
     public Result<Void> handleDuplicateKeyException(DuplicateKeyException ex) {
         log.warn("唯一键冲突：{}", ex.getRootCause() == null ? ex.getMessage() : ex.getRootCause().getMessage());
         return Result.failure(ResultCodeEnum.DATA_ALREADY_EXIST);
+    }
+
+    /**
+     * 处理数据库完整性约束违反（CHECK 范围、非空、外键等），避免落到兜底 500
+     *
+     * @param ex 数据完整性约束违反异常
+     * @return 统一响应
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public Result<Void> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        log.warn("数据完整性约束违反：{}",
+                ex.getMostSpecificCause() == null ? ex.getMessage() : ex.getMostSpecificCause().getMessage());
+        return Result.failure(ResultCodeEnum.PARAM_ERROR);
     }
 
     /**

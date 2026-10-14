@@ -279,8 +279,8 @@ AI      人工智能
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
 | `id` | BIGINT | PK | 年级 ID |
-| `grade_name` | VARCHAR(30) | UNIQUE, NOT NULL | 年级名称 |
-| `entry_year` | INT | UNIQUE, NOT NULL | 入学年份 |
+| `grade_name` | VARCHAR(30) | NOT NULL | 年级名称（允许重复，无唯一约束） |
+| `entry_year` | INT | NOT NULL | 入学年份 |
 | `status` | TINYINT | NOT NULL | 是否启用 |
 | `created_at` | DATETIME | NOT NULL | 创建时间 |
 | `updated_at` | DATETIME | NOT NULL | 更新时间 |
