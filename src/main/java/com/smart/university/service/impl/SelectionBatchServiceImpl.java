@@ -194,6 +194,35 @@ public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper,
         param.setBatchId(batchId);
         param.setTeachingClassId(teachingClassId);
         selectionBatchClassMapper.removeSelectionBatchClass(param);
+        // 批次-教学班关联为物理删除，删除后发布课程调整通知
+        notifyBatchTeachingClassRemoved(teachingClassId);
+    }
+
+    /**
+     * 通知相关学生教学班已移出选课批次，通知失败不影响移除结果
+     * <p>
+     * 接收人取自该教学班已选（SELECTED）学生：若移除的是本批次，
+     * 上面的校验已保证本批次下不存在选课记录，此处只会命中在其他批次选中该教学班的学生。
+     *
+     * @param teachingClassId 教学班 ID
+     */
+    private void notifyBatchTeachingClassRemoved(Long teachingClassId) {
+        try {
+            TeachingClassDO teachingClassDO = teachingClassMapper.getTeachingClassById(teachingClassId);
+            String className = teachingClassDO == null
+                    ? String.valueOf(teachingClassId) : teachingClassDO.getClassName();
+            noticeEventPublisher.publish(NoticeEvent.builder()
+                    .noticeType(NoticeTypeEnum.COURSE_ADJUSTED)
+                    .title(NoticeTypeEnum.COURSE_ADJUSTED.getDefaultTitle())
+                    .content(StrUtil.format("教学班【{}】已从选课批次中移除，该课程不再于本批次开放选择，请及时查看。",
+                            className))
+                    .receiverUserIds(noticeTargetResolver.listUserIdsByTeachingClassId(teachingClassId))
+                    .receiverRole(RoleEnum.STUDENT)
+                    .bizId(null)
+                    .build());
+        } catch (Exception ex) {
+            log.error("批次-教学班移除通知发布失败，teachingClassId：{}", teachingClassId, ex);
+        }
     }
 
     @Override
