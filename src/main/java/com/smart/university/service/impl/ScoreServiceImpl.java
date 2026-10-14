@@ -129,20 +129,31 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, ScoreDO> implemen
     @Override
     public List<TeacherScoreRespDTO> listTeacherScore(Long teachingClassId) {
         checkTeachingClassOwner(teachingClassId);
-        List<ScoreDO> scoreDOList = scoreMapper.listScoreByTeachingClassId(teachingClassId);
-        if (CollUtil.isEmpty(scoreDOList)) {
+        // 以教学班全部「已选」学生为基准，保证未录入成绩的学生也一并返回（见接口文档 §7.5）
+        CourseSelectionDO selectionParam = new CourseSelectionDO();
+        selectionParam.setTeachingClassId(teachingClassId);
+        selectionParam.setStatus(SelectionStatusEnum.SELECTED);
+        List<CourseSelectionDO> selectionList = courseSelectionMapper.listSelectionByCondition(selectionParam);
+        if (CollUtil.isEmpty(selectionList)) {
             return List.of();
         }
-        Map<Long, StudentDO> studentMap = buildStudentMap(scoreDOList);
-        return scoreDOList.stream().map(each -> {
-            CourseSelectionDO selectionDO = courseSelectionMapper.getSelectionById(each.getCourseSelectionId());
-            StudentDO studentDO = selectionDO == null ? null : studentMap.get(selectionDO.getStudentId());
+        // 已录入的成绩按选课记录 ID 建立索引，便于未录入成绩的学生映射为 null
+        List<Long> selectionIds = selectionList.stream().map(CourseSelectionDO::getId).toList();
+        Map<Long, ScoreDO> scoreMap = scoreMapper.listScoreBySelectionIds(selectionIds).stream()
+                .collect(Collectors.toMap(ScoreDO::getCourseSelectionId, Function.identity(), (a, b) -> a));
+        // 学生信息映射
+        Map<Long, StudentDO> studentMap = studentMapper.listStudentByIds(
+                        selectionList.stream().map(CourseSelectionDO::getStudentId).distinct().toList()).stream()
+                .collect(Collectors.toMap(StudentDO::getId, Function.identity(), (a, b) -> a));
+        return selectionList.stream().map(each -> {
+            StudentDO studentDO = studentMap.get(each.getStudentId());
+            ScoreDO scoreDO = scoreMap.get(each.getId());
             TeacherScoreRespDTO result = new TeacherScoreRespDTO();
-            result.setSelectionId(each.getCourseSelectionId());
+            result.setSelectionId(each.getId());
             result.setStudentNo(studentDO == null ? null : studentDO.getStudentNo());
             result.setStudentName(studentDO == null ? null : studentDO.getStudentName());
-            result.setScore(each.getScoreValue());
-            result.setStatus(each.getStatus() == null ? null : each.getStatus().name());
+            result.setScore(scoreDO == null ? null : scoreDO.getScoreValue());
+            result.setStatus(scoreDO == null || scoreDO.getStatus() == null ? null : scoreDO.getStatus().name());
             return result;
         }).toList();
     }
@@ -280,25 +291,6 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, ScoreDO> implemen
         if (!teacherId.equals(teachingClassDO.getTeacherId())) {
             throw new BizException(ResultCodeEnum.NO_TEACHING_CLASS_PERMISSION);
         }
-    }
-
-    /**
-     * 构建成绩关联学生映射
-     *
-     * @param scoreDOList 成绩集合
-     * @return 学生 ID 与学生信息的映射
-     */
-    private Map<Long, StudentDO> buildStudentMap(List<ScoreDO> scoreDOList) {
-        List<Long> selectionIds = scoreDOList.stream().map(ScoreDO::getCourseSelectionId).toList();
-        List<Long> studentIds = selectionIds.stream()
-                .map(each -> courseSelectionMapper.getSelectionById(each))
-                .filter(each -> each != null)
-                .map(CourseSelectionDO::getStudentId).distinct().toList();
-        if (CollUtil.isEmpty(studentIds)) {
-            return Map.of();
-        }
-        return studentMapper.listStudentByIds(studentIds).stream()
-                .collect(Collectors.toMap(StudentDO::getId, Function.identity()));
     }
 
     /**
