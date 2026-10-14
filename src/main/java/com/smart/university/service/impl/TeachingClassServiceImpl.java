@@ -351,7 +351,11 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
         CourseSelectionDO selectionParam = new CourseSelectionDO();
         selectionParam.setTeachingClassId(teachingClassId);
         selectionParam.setStatus(SelectionStatusEnum.SELECTED);
-        List<Long> studentIds = courseSelectionMapper.listSelectionByCondition(selectionParam).stream()
+        List<CourseSelectionDO> selectionDOList = courseSelectionMapper.listSelectionByCondition(selectionParam);
+        // 学生 ID → 选课记录 ID（同一教学班内唯一，异常重复时取第一条），供 §7.4 保存成绩定位记录
+        Map<Long, Long> selectionIdByStudentId = selectionDOList.stream().collect(
+                Collectors.toMap(CourseSelectionDO::getStudentId, CourseSelectionDO::getId, (first, second) -> first));
+        List<Long> studentIds = selectionDOList.stream()
                 .map(CourseSelectionDO::getStudentId).distinct().toList();
         if (CollUtil.isEmpty(studentIds)) {
             return PageResult.empty(requestParam.getCurrentPage(), requestParam.getLimit());
@@ -380,6 +384,7 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
             GradeCohortDO gradeCohortDO = gradeMap.get(each.getGradeId());
             AcademicClassDO academicClassDO = classMap.get(each.getClassId());
             TeacherClassStudentRespDTO result = new TeacherClassStudentRespDTO();
+            result.setSelectionId(selectionIdByStudentId.get(each.getId()));
             result.setStudentId(each.getId());
             result.setStudentNo(each.getStudentNo());
             result.setStudentName(each.getStudentName());

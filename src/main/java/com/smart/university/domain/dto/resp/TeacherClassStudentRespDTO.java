@@ -9,6 +9,11 @@ import lombok.Data;
 public class TeacherClassStudentRespDTO {
 
     /**
+     * 选课记录 ID（保存成绩时用于定位记录）
+     */
+    private Long selectionId;
+
+    /**
      * 学生 ID
      */
     private Long studentId;
