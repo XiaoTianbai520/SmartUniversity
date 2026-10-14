@@ -244,6 +244,11 @@ public class WaitlistServiceImpl implements WaitlistService {
                     }
                     promotedInRound = true;
                 } catch (BizException ex) {
+                    if (ResultCodeEnum.CLASS_CAPACITY_FULL.getCode() == ex.getCode()) {
+                        // 名额已满：属容量漂移而非候补本身不合格，本轮立即停止，绝不作废候补
+                        log.info("递补时容量已满，停止本轮，teachingClassId：{}", teachingClassId);
+                        break;
+                    }
                     invalidateWaitlist(each.getId());
                     result.setInvalidCount(result.getInvalidCount() + 1);
                     log.info("候补记录重新校验未通过，已置为失效，selectionId：{}，原因：{}", each.getId(), ex.getMessage());
@@ -301,14 +306,18 @@ public class WaitlistServiceImpl implements WaitlistService {
     }
 
     /**
-     * 获取下一个候补序号，取该教学班当前最大序号加一，无候补时从 1 开始
+     * 获取下一个候补序号，由 Redis 原子自增生成，保证并发下序号唯一
+     * <p>
+     * 采用 Redis INCR 而非「查最大值加一」：后者在并发加入候补时会取到同一个最大值导致同号，
+     * 位次错乱；INCR 单调递增，且天然满足「退课后重新候补不插队」的语义（新号永远更大）。
      *
      * @param teachingClassId 教学班 ID
      * @return 候补序号
      */
     private Integer getNextWaitlistNo(Long teachingClassId) {
-        Integer maxWaitlistNo = courseSelectionMapper.getMaxWaitlistNo(teachingClassId);
-        return maxWaitlistNo == null ? 1 : maxWaitlistNo + 1;
+        String key = RedisKeyUtil.buildTeachingClassWaitlistNoKey(teachingClassId);
+        Long next = stringRedisTemplate.opsForValue().increment(key);
+        return next == null ? 1 : next.intValue();
     }
 
     /**

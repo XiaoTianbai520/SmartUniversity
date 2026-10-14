@@ -73,11 +73,15 @@ smart-university:
     # 免鉴权路径，多个使用英文逗号分隔
     exclude-paths: /api/v1/auth/login,/error
   # 选课并发控制开关：false 走纯数据库事务，true 走 Redis 预扣减 + MQ 异步落库
+  # 关闭原因：选课走 Redis 预扣、候补看数据库统计属于两套容量口径，
+  # 一旦 Redis 计数漂移就会出现「选课报满 40910、候补报余量 40921」两头堵死，
+  # 统一以数据库实时统计为准（业务流程设计 §9 容量控制开关支持该模式）
   selection:
-    redis-deduct-enabled: true
+    redis-deduct-enabled: false
   # 消息队列开关：本地没有 RocketMQ 环境时可置为 false，应用仍可正常启动
+  # 当前测试环境无 RocketMQ，关闭后消费者不再反复重连
   mq:
-    enabled: true
+    enabled: false
 
 rocketmq:
   name-server: ${smart-university.server-ip}:9876

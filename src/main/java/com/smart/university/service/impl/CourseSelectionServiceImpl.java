@@ -213,6 +213,14 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
             result.setCourseName(courseDO == null ? null : courseDO.getCourseName());
             result.setCredit(courseDO == null ? null : courseDO.getCredit());
             result.setStatus(each.getStatus() == null ? null : each.getStatus().name());
+            if (SelectionStatusEnum.WAITING == each.getStatus()) {
+                // 候补记录补充位次信息：位次 = 同班候补序号小于本人且仍为 WAITING 的条数 + 1
+                result.setWaitlistNo(each.getWaitlistNo());
+                result.setWaitlistRank((int) courseSelectionMapper
+                        .countWaitingAhead(each.getTeachingClassId(), each.getWaitlistNo()) + 1);
+                result.setWaitingCount((int) courseSelectionMapper
+                        .countWaitingByTeachingClassId(each.getTeachingClassId()));
+            }
             result.setSelectedAt(each.getSelectedAt());
             result.setSchedules(convertSchedule(scheduleMap.getOrDefault(each.getTeachingClassId(), List.of())));
             return result;

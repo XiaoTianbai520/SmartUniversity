@@ -50,4 +50,19 @@ public class StudentSelectionRespDTO {
      * 排课信息
      */
     private List<ScheduleRespDTO> schedules;
+
+    /**
+     * 候补序号，仅 status=WAITING 时有值
+     */
+    private Integer waitlistNo;
+
+    /**
+     * 当前候补位次，实时计算得出，仅 status=WAITING 时有值
+     */
+    private Integer waitlistRank;
+
+    /**
+     * 该教学班候补总人数，仅 status=WAITING 时有值
+     */
+    private Integer waitingCount;
 }
