@@ -14,6 +14,7 @@ import com.smart.university.domain.entity.TeachingClassDO;
 import com.smart.university.domain.entity.TeachingClassGradeDO;
 import com.smart.university.domain.entity.TeachingClassMajorDO;
 import com.smart.university.domain.entity.TeachingClassScheduleDO;
+import com.smart.university.domain.entity.TeacherDO;
 import com.smart.university.domain.dto.req.CourseSelectReqDTO;
 import com.smart.university.domain.dto.req.StudentSelectionQueryReqDTO;
 import com.smart.university.domain.dto.resp.CourseSelectionRespDTO;
@@ -24,6 +25,7 @@ import com.smart.university.mapper.CourseMapper;
 import com.smart.university.mapper.CourseSelectionMapper;
 import com.smart.university.mapper.SelectionBatchClassMapper;
 import com.smart.university.mapper.StudentMapper;
+import com.smart.university.mapper.TeacherMapper;
 import com.smart.university.mapper.TeachingClassGradeMapper;
 import com.smart.university.mapper.TeachingClassMajorMapper;
 import com.smart.university.mapper.TeachingClassMapper;
@@ -46,8 +48,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -74,6 +78,8 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
     private final CourseMapper courseMapper;
 
     private final StudentMapper studentMapper;
+
+    private final TeacherMapper teacherMapper;
 
     private final SemesterService semesterService;
 
@@ -201,10 +207,16 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
         Map<Long, CourseDO> courseMap = courseMapper
                 .listCourseByIds(teachingClassDOList.stream().map(TeachingClassDO::getCourseId).distinct().toList())
                 .stream().collect(Collectors.toMap(CourseDO::getId, Function.identity()));
+        // 教师信息需经「教学班 → 教师」两次关联才能取到，先批量捞出教师姓名避免逐条查询
+        Map<Long, String> teacherNameMap = teacherMapper
+                .listTeacherByIds(teachingClassDOList.stream()
+                        .map(TeachingClassDO::getTeacherId).filter(each -> each != null).distinct().toList())
+                .stream().collect(Collectors.toMap(TeacherDO::getId, TeacherDO::getTeacherName, (first, second) -> first));
         Map<Long, List<TeachingClassScheduleDO>> scheduleMap = scheduleService
                 .listScheduleByTeachingClassIds(teachingClassIds).stream()
                 .collect(Collectors.groupingBy(TeachingClassScheduleDO::getTeachingClassId));
-        return selectionDOList.stream().map(each -> {
+        List<StudentSelectionRespDTO> resultList = new ArrayList<>(selectionDOList.size());
+        for (CourseSelectionDO each : selectionDOList) {
             TeachingClassDO teachingClassDO = teachingClassMap.get(each.getTeachingClassId());
             CourseDO courseDO = teachingClassDO == null ? null : courseMap.get(teachingClassDO.getCourseId());
             StudentSelectionRespDTO result = new StudentSelectionRespDTO();
@@ -212,6 +224,8 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
             result.setTeachingClassId(each.getTeachingClassId());
             result.setCourseName(courseDO == null ? null : courseDO.getCourseName());
             result.setCredit(courseDO == null ? null : courseDO.getCredit());
+            // 与选课状态无关，SELECTED / WITHDRAWN / WAITING 三种记录都带出教师姓名
+            result.setTeacherName(teachingClassDO == null ? null : teacherNameMap.get(teachingClassDO.getTeacherId()));
             result.setStatus(each.getStatus() == null ? null : each.getStatus().name());
             if (SelectionStatusEnum.WAITING == each.getStatus()) {
                 // 候补记录补充位次信息：位次 = 同班候补序号小于本人且仍为 WAITING 的条数 + 1
@@ -223,8 +237,11 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
             }
             result.setSelectedAt(each.getSelectedAt());
             result.setSchedules(convertSchedule(scheduleMap.getOrDefault(each.getTeachingClassId(), List.of())));
-            return result;
-        }).toList();
+            // 兜底：教学班或教师数据异常时 teacherName 不能为 null，否则全局 non_null 配置会让该 JSON 键直接消失
+            result.setTeacherName(Optional.ofNullable(result.getTeacherName()).orElse(""));
+            resultList.add(result);
+        }
+        return resultList;
     }
 
     /**
