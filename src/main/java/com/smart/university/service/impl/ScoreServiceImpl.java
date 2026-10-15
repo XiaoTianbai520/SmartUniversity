@@ -28,14 +28,11 @@ import com.smart.university.mapper.CourseSelectionMapper;
 import com.smart.university.mapper.ScoreMapper;
 import com.smart.university.mapper.StudentMapper;
 import com.smart.university.mapper.TeachingClassMapper;
-import com.smart.university.mq.message.ScorePublishMessage;
-import com.smart.university.mq.producer.ScorePublishProducer;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.ScoreService;
 import com.smart.university.service.SemesterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,11 +76,6 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, ScoreDO> implemen
     private final NoticeEventPublisher noticeEventPublisher;
 
     private final NoticeTargetResolver noticeTargetResolver;
-
-    /**
-     * 成绩发布消息生产者，未开启消息队列时容器中不存在该 Bean
-     */
-    private final ObjectProvider<ScorePublishProducer> scorePublishProducerProvider;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -175,19 +167,6 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, ScoreDO> implemen
         LocalDateTime now = LocalDateTime.now();
         int publishedCount = scoreMapper.updateScoreStatusBySelectionIds(
                 selectionIds, ScoreStatusEnum.PUBLISHED, now);
-        ScorePublishProducer producer = scorePublishProducerProvider.getIfAvailable();
-        if (producer != null) {
-            try {
-                producer.sendScorePublishMessage(ScorePublishMessage.builder()
-                        .teachingClassId(teachingClassId)
-                        .selectionIds(selectionIds)
-                        .publishedCount(publishedCount)
-                        .publishedAt(now)
-                        .build());
-            } catch (Exception ex) {
-                log.error("成绩发布消息发送失败，teachingClassId：{}", teachingClassId, ex);
-            }
-        }
         publishScoreNotice(teachingClassId, selectionIds, publishedCount, now);
         ScorePublishRespDTO result = new ScorePublishRespDTO();
         result.setPublishedCount(publishedCount);

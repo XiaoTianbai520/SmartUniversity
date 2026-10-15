@@ -30,8 +30,6 @@ import com.smart.university.mapper.TeachingClassGradeMapper;
 import com.smart.university.mapper.TeachingClassMajorMapper;
 import com.smart.university.mapper.TeachingClassMapper;
 import com.smart.university.mapper.TeachingClassScheduleMapper;
-import com.smart.university.mq.message.CourseSelectionMessage;
-import com.smart.university.mq.producer.CourseSelectionProducer;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.CourseSelectionService;
 import com.smart.university.service.ScheduleService;
@@ -41,7 +39,6 @@ import com.smart.university.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -88,11 +85,6 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
     private final WaitlistService waitlistService;
 
     private final ScheduleService scheduleService;
-
-    /**
-     * 选课消息生产者，未开启消息队列时容器中不存在该 Bean
-     */
-    private final ObjectProvider<CourseSelectionProducer> courseSelectionProducerProvider;
 
     private final StringRedisTemplate stringRedisTemplate;
 
@@ -146,8 +138,6 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
             courseSelectionMapper.updateSelection(updateSelectionDO);
             selectionId = existSelectionDO.getId();
         }
-        sendSelectionMessage(selectionId, studentDO.getId(), teachingClassDO.getId(), batchDO.getId(), "SELECT", now);
-
         CourseSelectionRespDTO result = new CourseSelectionRespDTO();
         result.setSelectionId(selectionId);
         result.setTeachingClassId(teachingClassDO.getId());
@@ -178,8 +168,6 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
         updateSelectionDO.setWithdrawnAt(now);
         courseSelectionMapper.updateSelection(updateSelectionDO);
         restoreCapacity(selectionDO.getTeachingClassId());
-        sendSelectionMessage(selectionId, studentDO.getId(), selectionDO.getTeachingClassId(),
-                selectionDO.getBatchId(), "WITHDRAW", now);
         // 退课释放名额后尝试递补候补队列，递补失败不影响本次退课结果
         try {
             waitlistService.tryPromote(selectionDO.getTeachingClassId());
@@ -448,42 +436,6 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
         String key = RedisKeyUtil.buildTeachingClassCapacityKey(teachingClassId);
         if (redisDeductEnabled && Boolean.TRUE.equals(stringRedisTemplate.hasKey(key))) {
             stringRedisTemplate.opsForValue().decrement(key);
-        }
-    }
-
-    /**
-     * 发送选课结果消息
-     *
-     * @param selectionId     选课记录 ID
-     * @param studentId       学生 ID
-     * @param teachingClassId 教学班 ID
-     * @param batchId         批次 ID
-     * @param operateType     操作类型
-     * @param operateTime     操作时间
-     */
-    private void sendSelectionMessage(Long selectionId, Long studentId, Long teachingClassId, Long batchId,
-                                      String operateType, LocalDateTime operateTime) {
-        CourseSelectionMessage message = CourseSelectionMessage.builder()
-                .selectionId(selectionId)
-                .studentId(studentId)
-                .teachingClassId(teachingClassId)
-                .batchId(batchId)
-                .operateType(operateType)
-                .operateTime(operateTime)
-                .build();
-        CourseSelectionProducer producer = courseSelectionProducerProvider.getIfAvailable();
-        if (producer == null) {
-            return;
-        }
-        try {
-            if ("WITHDRAW".equals(operateType)) {
-                producer.sendCourseWithdrawMessage(message);
-            } else {
-                producer.sendCourseSelectionMessage(message);
-            }
-        } catch (Exception ex) {
-            // 选课主流程已落库，消息发送失败仅记录日志，由消费端兜底刷新缓存
-            log.error("选课消息发送失败，selectionId：{}", selectionId, ex);
         }
     }
 

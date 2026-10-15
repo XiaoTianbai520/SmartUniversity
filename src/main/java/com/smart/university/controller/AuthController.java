@@ -9,7 +9,6 @@ import com.smart.university.service.AuthService;
 import com.smart.university.web.annotation.RequireRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
