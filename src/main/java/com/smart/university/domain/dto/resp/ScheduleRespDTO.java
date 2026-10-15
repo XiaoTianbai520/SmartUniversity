@@ -9,6 +9,11 @@ import lombok.Data;
 public class ScheduleRespDTO {
 
     /**
+     * 排课 ID（前端编辑、删除时用于定位记录）
+     */
+    private Long id;
+
+    /**
      * 星期 1-7
      */
     private Integer weekday;
