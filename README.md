@@ -1,6 +1,6 @@
 # 高校智慧教务选课平台（SmartUniversity）
 
-Spring Boot 3 + MyBatis + MySQL + Redis + RocketMQ 单体式后端骨架。
+Spring Boot 3 + MyBatis + MySQL + Redis 单体式后端骨架。
 接口契约严格对齐 `docs/接口清单.md`（全量接口的唯一契约文档，含 V1.0 与 V1.1），命名严格对齐《命名规范.md》。
 
 ## 技术选型
@@ -12,7 +12,6 @@ Spring Boot 3 + MyBatis + MySQL + Redis + RocketMQ 单体式后端骨架。
 | MyBatis-Plus | 3.5.14 | 单表 CRUD 走 `BaseMapper` + `LambdaQueryWrapper`；物理分页走 `PaginationInnerInterceptor`；XML 仅保留联表查询 |
 | MySQL | 8.x | 库名 `edu_course_selection`，建表脚本见上级目录 `高校智慧教务选课平台_V1_数据库建表.sql` |
 | Redis | — | 登录态、教学班容量、学期与批次缓存 |
-| RocketMQ | 2.3.1（starter） | 选课结果、成绩发布的异步解耦 |
 | HuTool | 5.8.29 | 工具类统一走 HuTool，禁止重复造轮子 |
 
 ## 目录结构
@@ -21,7 +20,7 @@ Spring Boot 3 + MyBatis + MySQL + Redis + RocketMQ 单体式后端骨架。
 com.smart.university
 ├── common          通用能力
 │   ├── base        Result / PageResult 统一响应
-│   ├── constant    RedisCommonConstant / RocketMQConstant
+│   ├── constant    RedisCommonConstant
 │   ├── context     UserContext / UserContextHolder（ThreadLocal 透传登录态）
 │   ├── enums       ResultCodeEnum（全量业务错误码）/ RoleEnum
 │   ├── exception   BizException / GlobalExceptionHandler
@@ -38,7 +37,6 @@ com.smart.university
 │   ├── dto.req     xxxReqDTO，对象入参统一命名 requestParam
 │   ├── dto.resp    xxxRespDTO
 │   └── enums       业务状态枚举，枚举名即数据库存储值
-└── mq              message / producer / consumer
 ```
 
 > 注意：数据对象包名是 `domain.entity` 而不是 `domain.do`，因为 `do` 是 Java 关键字，不能作为包名。
@@ -50,12 +48,6 @@ com.smart.university
 - 领域模型：`SysUserDO`、`StudentSaveReqDTO`、`StudentPageQueryRespDTO`
 - 配置类 / 常量类 / 上下文 / 枚举：`XxxConfiguration` / `XxxConstant` / `XxxContext` / `XxxEnum`
 - 返回值变量 `result`，循环变量 `each`，Map 遍历 `entry`，捕获异常 `ex`
-- RocketMQ：
-  - Topic：`edu_smart-university_topic`
-  - Tag：`edu_smart-university_course-selection_tag`、`..._course-withdraw_tag`、`..._score-publish_tag`
-  - 生产者组：`edu_smart-university_course-selection_pg`
-  - 消费者组：`edu_smart-university_course-selection_cg`、`edu_smart-university_score-publish_cg`
-  - 发送时设置 KEYS（学生ID_教学班ID）、超时 2000ms、打印 SendResult；消费端保证幂等并按规范打印消费日志
 
 ## MyBatis-Plus 落地约定
 
@@ -128,8 +120,7 @@ com.smart.university
 2. 可选：执行 `db/test-data.sql` 灌入测试数据（含管理员 / 教师 / 学生账号、课程、教学班、排课、选课批次、一条已发布成绩）。
 3. 修改 `src/main/resources/application-dev.yml` 里的 MySQL 与 Redis 地址。
 4. 初始化一个管理员账号（`sys_user.password_hash` 存 BCrypt 哈希，可用 `BCrypt.hashpw("123456", BCrypt.gensalt())` 生成）。
-5. RocketMQ：`smart-university.mq.enabled` 控制，本地没部署 NameServer + Broker 时置 `false` 即可正常启动。
-6. 启动：`mvn spring-boot:run`，接口基础路径 `http://localhost:8080/api/v1`。
+5. 启动：`mvn spring-boot:run`，接口基础路径 `http://localhost:8080/api/v1`。
 
 ## 测试数据
 
@@ -157,7 +148,7 @@ POST /api/v1/auth/login
 
 ## 环境验证状态
 
-已在一台 MySQL 8.4 + Redis + RocketMQ 的机器上完成端到端冒烟，全部通过：
+已在一台 MySQL 8.4 + Redis 的机器上完成端到端冒烟，全部通过：
 
 - 学生端：登录、`/auth/me`、可选课程列表（含教师姓名）、选课、课表、学分统计、退课、已发布成绩、登出
 - 教师端：登录、我的教学班、学生名单、成绩列表
@@ -338,7 +329,7 @@ curl -s -X POST $BASE/student/selections \
 # 4) 管理端 / 教师端：换对应角色账号重新登录拿另一个 token 即可
 ```
 
-> 远程测试（dev 环境 MySQL / Redis / RocketMQ 在 `100.83.74.68`）把 `BASE` 改成
+> 远程测试（dev 环境 MySQL / Redis 在 `100.83.74.68`）把 `BASE` 改成
 > `http://100.83.74.68:8080/api/v1` 即可，接口路径不变。
 
 **文件上传类接口（导入）**用 `-F`：
@@ -375,7 +366,6 @@ curl -s -X POST $BASE/admin/students/import \
 | `40405 教学班不存在` / `40912 当前不在选课时间` 等 | 业务校验未过 → 对照 `docs/接口清单.md` §4 错误码 |
 | 启动后连不上（随机端口） | 必须固定端口：`mvn spring-boot:run "-Dspring-boot.run.arguments=--server.port=8080"`，基础路径 `http://localhost:8080/api/v1` |
 | 调接口报 Redis 连接不上 | 登录态 / 容量 / 缓存依赖 Redis；`dev` 环境 Redis 在 `application-dev.yml` 的 `server-ip`（默认 `100.83.74.68`），本机没有需改 `server-ip` 或自建 |
-| 没有 RocketMQ 起不来 | 把 `smart-university.mq.enabled` 置 `false` 即可正常启动，不影响接口调试 |
 | 想看 SQL / 业务日志 | `application.yml` 把 `com.smart.university.mapper` 日志级别改 `debug` |
 
 ### 关于内置冒烟脚本

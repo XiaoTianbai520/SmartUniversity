@@ -1,0 +1,135 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="选课核心执行链路" id="core-selection-flow">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1310" pageHeight="1480" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 标题 -->
+        <mxCell id="title" value="SmartUniversity 选课核心执行链路 —— CourseSelectionServiceImpl#selectCourse" style="text;html=1;align=left;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="30" y="8" width="900" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- 入口：学生请求 -->
+        <mxCell id="start" value="学生发起选课&#10;POST /api/v1/student/selections" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="220" y="50" width="280" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- 拦截器 -->
+        <mxCell id="inter" value="AuthenticationInterceptor.preHandle&#10;解析 Token → 还原 UserContext（ThreadLocal）&#10;@RequireRole 角色校验（STUDENT）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="220" y="120" width="280" height="64" as="geometry" />
+        </mxCell>
+
+        <!-- Controller -->
+        <mxCell id="ctrl" value="StudentSelectionController.selectCourse&#10;@RequireRole(STUDENT) → courseSelectionService.selectCourse(requestParam)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="220" y="205" width="280" height="64" as="geometry" />
+        </mxCell>
+
+        <!-- 12 步校验：s1..s11 -->
+        <mxCell id="s1" value="① 取学生身份 getStudentByUserId()&#10;（一律从 UserContextHolder 取，不信任参数）&#10;失败 → STUDENT_NOT_EXIST" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="295" width="280" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="② 取教学班 getTeachingClass()&#10;失败 → TEACHING_CLASS_NOT_EXIST" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="372" width="280" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="③ 学期归属校验&#10;教学班.semesterId ≠ 当前学期 → PARAM_ERROR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="449" width="280" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" value="④ 取当前批次 + 教学班在批次范围 checkBatchTeachingClass()&#10;失败 → NOT_IN_SELECTION_TIME" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="526" width="280" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" value="⑤ 教学班状态 allowSelect()&#10;失败 → NOT_IN_SELECTION_TIME" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="603" width="280" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="s6" value="⑥ 专业 + 年级 checkMajorAndGrade()&#10;失败 → MAJOR_NOT_ALLOWED / GRADE_NOT_ALLOWED" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="680" width="280" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="s7" value="⑦ 重复选课 existStatus==SELECTED&#10;失败 → DUPLICATE_SELECTION" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="757" width="280" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="s8" value="⑧ 时间冲突 checkScheduleConflict()&#10;星期相同 且 教学周/节次有交集 → STUDENT_SCHEDULE_CONFLICT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="834" width="280" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="s9" value="⑨ 学分上限 checkCreditLimit()&#10;已选 + 目标 &gt; maxCredit → CREDIT_LIMIT_EXCEEDED" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="911" width="280" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="s10" value="⑩ 容量扣减 deductCapacity()&#10;Redis 原子自增（开关开）或 DB 实时统计&#10;满员 → CLASS_CAPACITY_FULL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="988" width="280" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="s11" value="⑪ 落库选课记录 saveSelection / updateSelection&#10;（无记录则新增，已 WAITING 则转正）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#5a6b7b;" parent="1" vertex="1">
+          <mxGeometry x="220" y="1065" width="280" height="58" as="geometry" />
+        </mxCell>
+
+        <!-- 成功出口 -->
+        <mxCell id="ok" value="Result.success(&quot;选课成功&quot;, resp)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="220" y="1224" width="280" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- 异常统一出口 -->
+        <mxCell id="exc" value="校验失败统一出口&#10;BizException&#10;↓&#10;GlobalExceptionHandler&#10;↓&#10;Result.fail(code, msg)&#10;&#10;（任一步骤校验不通过即抛出）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=middle;fontColor=#7a1f1f;" parent="1" vertex="1">
+          <mxGeometry x="30" y="560" width="170" height="470" as="geometry" />
+        </mxCell>
+
+        <!-- MySQL -->
+        <mxCell id="db" value="MySQL 8" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;" parent="1" vertex="1">
+          <mxGeometry x="660" y="1060" width="130" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- 边：主链路 -->
+        <mxCell id="e_start" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="start" target="inter" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_inter" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="inter" target="ctrl" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ctrl" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="ctrl" target="s1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s1" target="s2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s2" target="s3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s3" target="s4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s4" target="s5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s5" target="s6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s6" target="s7" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s7" target="s8" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s8" target="s9" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s9" target="s10" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s10" target="s11" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="s11" target="ok" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 边：异常出口（从 s6 左侧统一引出） -->
+        <mxCell id="e_exc" value="任一步骤校验失败" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;strokeColor=#b85450;fontColor=#b85450;" parent="1" source="s6" target="exc" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 边：落库 → MySQL -->
+        <mxCell id="e_db" value="Mapper 落库&#10;(BaseMapper+Wrapper)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#d79b00;fontSize=11;" parent="1" source="s11" target="db" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -629,5 +629,5 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- 7. V1 不在 teaching_class 中维护 selected_count。
 --    当前人数通过 course_selection WHERE status='SELECTED' 实时统计。
 --
--- 8. V1.2 高并发阶段再增加 Redis + Lua + 数据库事务 + MQ。
+-- 8. V1.2 高并发阶段再增加 Redis + Lua + 数据库事务。
 -- ============================================================

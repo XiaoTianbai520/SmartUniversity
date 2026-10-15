@@ -41,7 +41,7 @@ ALTER TABLE `course_selection`
 --    群发场景（如选课开始通知）在插入时复制多份。
 --    该模型让「未读数」「标记已读」「通知列表」都能单表完成，
 --    无需额外的通知-用户关联表。
--- 2) uk_notice_dedup 用于幂等：事件监听器重复消费同一条 MQ /
+-- 2) uk_notice_dedup 用于幂等：事件监听器重复消费同一条消息 /
 --    ApplicationEvent 时不会产生重复通知。
 -- 3) biz_id 为业务单据 ID（批次 ID / 教学班 ID / 选课记录 ID），
 --    用于跳转与去重，业务类型由 notice_type 区分。

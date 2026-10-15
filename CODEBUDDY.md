@@ -26,7 +26,7 @@ mvn -B clean package -DskipTests
 
 ## 环境
 
-MySQL 8.4 / Redis / RocketMQ 均在 `192.168.1.102`（root / 123456），配置在 `src/main/resources/application-dev.yml`。本机没有 MySQL 与 RocketMQ 服务端，只能编译 + 连远程库做冒烟。
+MySQL 8.4 / Redis 均在 `192.168.1.102`（root / 123456），配置在 `src/main/resources/application-dev.yml`。本机没有 MySQL 服务端，只能编译 + 连远程库做冒烟。
 
 - 建表：执行 `docs/高校智慧教务选课平台_V1_数据库建表.sql`（库名 `edu_course_selection`），再执行 `docs/V1.1_数据库增量设计.sql`。
 - 灌测试数据：`db/test-data.sql`。
@@ -57,7 +57,7 @@ python target/smoke_admin.py   # 管理端：17 个只读接口 + 专业 CRUD + 
 com.smart.university
 ├── common          通用能力
 │   ├── base        Result / PageResult 统一响应
-│   ├── constant    RedisCommonConstant / RocketMQConstant
+│   ├── constant    RedisCommonConstant
 │   ├── context     UserContext / UserContextHolder（ThreadLocal 透传登录态）
 │   ├── enums       ResultCodeEnum（全量业务错误码）/ RoleEnum
 │   ├── exception   BizException / GlobalExceptionHandler
@@ -92,9 +92,7 @@ com.smart.university
 
 **错误码**：`ResultCodeEnum` 覆盖 `docs/接口文档.md` 声明的业务码，V1.0 段为 40001~40917，V1.1 段扩展至 40932，另补 `40900 数据已存在` 兜底唯一键冲突（`GlobalExceptionHandler` 捕获 `DuplicateKeyException`）。
 
-**RocketMQ**：一个 Topic `edu_smart-university_topic`，业务用 Tag 区分；生产者组 `edu_smart-university_course-selection_pg`。无 MQ 环境时把 `smart-university.mq.enabled` 置 `false` 即可正常启动。
-
-**核心链路**：`CourseSelectionServiceImpl#selectCourse` 按文档顺序做 13 步校验（身份→教学班→学期→批次→状态→专业→年级→重复选课→时间冲突→学分上限→容量→落库+发消息）。容量控制开关 `smart-university.selection.redis-deduct-enabled`。
+**核心链路**：`CourseSelectionServiceImpl#selectCourse` 按文档顺序做 13 步校验（身份→教学班→学期→批次→状态→专业→年级→重复选课→时间冲突→学分上限→容量→落库）。容量控制开关 `smart-university.selection.redis-deduct-enabled`。
 
 ## 文档索引
 
