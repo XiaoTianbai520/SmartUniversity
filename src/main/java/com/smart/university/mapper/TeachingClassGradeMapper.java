@@ -3,6 +3,7 @@ package com.smart.university.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import cn.hutool.core.collection.CollUtil;
 import com.smart.university.domain.entity.TeachingClassGradeDO;
 
 import java.util.List;
@@ -62,5 +63,21 @@ public interface TeachingClassGradeMapper extends BaseMapper<TeachingClassGradeD
         queryWrapper.eq(requestParam.getGradeId() != null, TeachingClassGradeDO::getGradeId,
                 requestParam.getGradeId());
         return selectCount(queryWrapper);
+    }
+
+    /**
+     * 批量查询多个教学班开放的年级 ID 配置，仅投影 teachingClassId 与 gradeId
+     *
+     * @param teachingClassIds 教学班 ID 集合
+     * @return 配置集合，按 teachingClassId 分组即为各教学班的年级 ID 数组
+     */
+    default List<TeachingClassGradeDO> listByTeachingClassIds(List<Long> teachingClassIds) {
+        if (CollUtil.isEmpty(teachingClassIds)) {
+            return List.of();
+        }
+        return selectList(Wrappers.<TeachingClassGradeDO>lambdaQuery()
+                .select(TeachingClassGradeDO::getTeachingClassId, TeachingClassGradeDO::getGradeId)
+                .in(TeachingClassGradeDO::getTeachingClassId, teachingClassIds)
+                .orderByAsc(TeachingClassGradeDO::getTeachingClassId, TeachingClassGradeDO::getGradeId));
     }
 }

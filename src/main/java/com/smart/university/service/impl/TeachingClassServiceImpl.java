@@ -68,6 +68,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -621,6 +622,20 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
         Map<Long, CourseDO> courseMap = buildCourseMap(teachingClassDOList);
         Map<Long, List<TeachingClassScheduleDO>> scheduleMap = buildScheduleMap(
                 teachingClassDOList.stream().map(TeachingClassDO::getId).toList());
+
+        // 16.2 列表 / 16.3 详情：批量回填适用专业与年级 ID，仅对当前页教学班做 IN 查询，避免 N+1
+        List<Long> classIds = teachingClassDOList.stream().map(TeachingClassDO::getId).toList();
+        Map<Long, List<Long>> majorIdMap = teachingClassMajorMapper.listByTeachingClassIds(classIds).stream()
+                .collect(Collectors.groupingBy(TeachingClassMajorDO::getTeachingClassId,
+                        Collectors.mapping(TeachingClassMajorDO::getMajorId,
+                                Collectors.collectingAndThen(
+                                        Collectors.toCollection(LinkedHashSet::new), ArrayList::new))));
+        Map<Long, List<Long>> gradeIdMap = teachingClassGradeMapper.listByTeachingClassIds(classIds).stream()
+                .collect(Collectors.groupingBy(TeachingClassGradeDO::getTeachingClassId,
+                        Collectors.mapping(TeachingClassGradeDO::getGradeId,
+                                Collectors.collectingAndThen(
+                                        Collectors.toCollection(LinkedHashSet::new), ArrayList::new))));
+
         return teachingClassDOList.stream().map(each -> {
             TeachingClassRespDTO result = BeanUtil.copyProperties(each, TeachingClassRespDTO.class);
             result.setTeachingClassId(each.getId());
@@ -629,6 +644,8 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
             result.setStatus(each.getStatus() == null ? null : each.getStatus().name());
             result.setSelectedCount(courseSelectionMapper.countSelectedByTeachingClassId(each.getId()));
             result.setSchedules(convertSchedule(scheduleMap.getOrDefault(each.getId(), List.of())));
+            result.setMajorIds(majorIdMap.getOrDefault(each.getId(), List.of()));
+            result.setGradeIds(gradeIdMap.getOrDefault(each.getId(), List.of()));
             return result;
         }).toList();
     }

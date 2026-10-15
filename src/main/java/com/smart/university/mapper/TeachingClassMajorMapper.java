@@ -3,6 +3,7 @@ package com.smart.university.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import cn.hutool.core.collection.CollUtil;
 import com.smart.university.domain.entity.TeachingClassMajorDO;
 
 import java.util.List;
@@ -62,5 +63,21 @@ public interface TeachingClassMajorMapper extends BaseMapper<TeachingClassMajorD
         queryWrapper.eq(requestParam.getMajorId() != null, TeachingClassMajorDO::getMajorId,
                 requestParam.getMajorId());
         return selectCount(queryWrapper);
+    }
+
+    /**
+     * 批量查询多个教学班开放的专业 ID 配置，仅投影 teachingClassId 与 majorId
+     *
+     * @param teachingClassIds 教学班 ID 集合
+     * @return 配置集合，按 teachingClassId 分组即为各教学班的专业 ID 数组
+     */
+    default List<TeachingClassMajorDO> listByTeachingClassIds(List<Long> teachingClassIds) {
+        if (CollUtil.isEmpty(teachingClassIds)) {
+            return List.of();
+        }
+        return selectList(Wrappers.<TeachingClassMajorDO>lambdaQuery()
+                .select(TeachingClassMajorDO::getTeachingClassId, TeachingClassMajorDO::getMajorId)
+                .in(TeachingClassMajorDO::getTeachingClassId, teachingClassIds)
+                .orderByAsc(TeachingClassMajorDO::getTeachingClassId, TeachingClassMajorDO::getMajorId));
     }
 }

@@ -65,6 +65,16 @@ public class TeachingClassRespDTO {
     private String status;
 
     /**
+     * 允许选课的专业 ID 数组，如 [1,2]；未配置返回空数组 []
+     */
+    private List<Long> majorIds;
+
+    /**
+     * 允许选课的年级 ID 数组，如 [1]；未配置返回空数组 []
+     */
+    private List<Long> gradeIds;
+
+    /**
      * 排课信息
      */
     private List<ScheduleRespDTO> schedules;
