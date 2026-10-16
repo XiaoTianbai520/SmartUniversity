@@ -73,11 +73,68 @@ smart-university:
     # 免鉴权路径，多个使用英文逗号分隔
     exclude-paths: /api/v1/auth/login,/error
   # 选课并发控制开关：false 走纯数据库事务，true 走 Redis 预扣减
-  # 关闭原因：选课走 Redis 预扣、候补看数据库统计属于两套容量口径，
-  # 一旦 Redis 计数漂移就会出现「选课报满 40910、候补报余量 40921」两头堵死，
-  # 统一以数据库实时统计为准（业务流程设计 §9 容量控制开关支持该模式）
+  # V1.1 曾因两套容量口径（选课走 Redis 预扣、候补看数据库统计）漂移而关闭；
+  # V1.2 由 W1 统一容量服务后口径收敛，按架构设计 §12.8 打开该开关
   selection:
-    redis-deduct-enabled: false
+    redis-deduct-enabled: true
+    # 容量计数 Key 过期时间（秒）
+    capacity-key-ttl-seconds: 86400
+    # 降级标记过期时间（秒）
+    degraded-flag-ttl-seconds: 60
+    # 容量缓存预热单轮扫描条数上限
+    warmup-scan-limit: 500
+  # 热点基础数据缓存（P-06）
+  cache:
+    hot-data-enabled: true
+    hot-data-ttl-seconds: 43200
+  # 自动化任务总开关、分布式锁租约与各任务周期（架构设计 §6.2 / §6.4）
+  schedule:
+    enabled: true
+    lock-lease-seconds: 300
+    tasks:
+      batch-status:            { enabled: true,  fixed-delay: 60000 }
+      waitlist-scan:           { enabled: true,  fixed-delay: 300000 }
+      stat-snapshot:           { enabled: true,  cron: "0 0 2 * * ?" }
+      dashboard-refresh:       { enabled: true,  fixed-delay: 600000 }
+      credit-warning:          { enabled: true,  cron: "0 0 9 ? * MON" }
+      data-audit:              { enabled: true,  cron: "0 0 3 * * ?" }
+      semester-archive:        { enabled: false, cron: "0 0 4 * * ?" }
+      cache-reconcile:         { enabled: true,  fixed-delay: 1800000 }
+      selection-cache-warmup:  { enabled: true,  cron: "0 0/30 * * * ?" }
+  # 统计口径可配项（架构设计 §12.8）
+  statistics:
+    classroom-usage:
+      # 每周计天数，决策 5 / Q7 已拍板：默认 5 天
+      days-per-week: 5
+      # 每天计节次，决策 5 / Q7 已拍板：默认 10 节
+      sections-per-day: 10
+      # 学期周数推导上限
+      max-weeks-per-semester: 20
+    teacher-workload:
+      # Q8 决议 A：不引入课程系数
+      credit-factor-enabled: false
+    credit:
+      # 决策 1 / Q10：已发布即计入，不判及格
+      publish-as-earned: true
+      # 仅用于计算附加字段 passedCredit，不作为计入门槛
+      pass-score: 60
+      # C9：同一课程重修多次是否去重，默认不去重
+      dedup-by-course: false
+    graduation-risk:
+      default-school-years: 4
+      high-rate: 0.8
+      medium-rate: 0.6
+    enrollment-forecast:
+      expansion-factor: 1.2
+      min-history-sample: 2
+    score-anomaly:
+      pass-rate-deviation: 15
+      excellent-rate-threshold: 60
+  # 统计快照扫描与保留策略
+  snapshot:
+    scan-limit: 500
+    # Q12 决议 A：每学期只保留最新一份
+    retain-days: 1
 
 # Knife4j / OpenAPI 接口文档配置
 knife4j:
