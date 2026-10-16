@@ -10,6 +10,7 @@ import com.smart.university.domain.entity.CourseSelectionDO;
 import com.smart.university.domain.enums.SelectionStatusEnum;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 选课记录持久层，单表操作由 MyBatis-Plus 的 BaseMapper 提供能力，
@@ -154,6 +155,118 @@ public interface CourseSelectionMapper extends BaseMapper<CourseSelectionDO> {
     }
     default long countSelectedByStudent(StudentSelectionQueryReqDTO requestParam) {
         return selectCount(buildStudentQueryWrapper(requestParam));
+    }
+
+    /**
+     * 统计指定批次下已选记录数量
+     *
+     * @param batchId 选课批次 ID
+     * @return 已选记录数量
+     */
+    default long countSelectedByBatchId(Long batchId) {
+        return selectCount(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .eq(CourseSelectionDO::getBatchId, batchId)
+                .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.SELECTED));
+    }
+
+    /**
+     * 统计指定批次下指定状态的记录数量
+     *
+     * @param batchId 选课批次 ID
+     * @param status  选课状态，为空时只按批次过滤
+     * @return 记录数量
+     */
+    default long countByBatchIdAndStatus(Long batchId, SelectionStatusEnum status) {
+        return selectCount(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .eq(CourseSelectionDO::getBatchId, batchId)
+                .eq(status != null, CourseSelectionDO::getStatus, status));
+    }
+
+    /**
+     * 统计教学班已退课记录数量，用于退课率分析
+     *
+     * @param teachingClassId 教学班 ID
+     * @return 已退课记录数量
+     */
+    default long countWithdrawnByTeachingClassId(Long teachingClassId) {
+        return selectCount(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .eq(CourseSelectionDO::getTeachingClassId, teachingClassId)
+                .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.WITHDRAWN));
+    }
+
+    /**
+     * 查询教学班下的全部选课记录，包含已选 / 已退课 / 候补中，调用方按需过滤状态
+     *
+     * @param teachingClassId 教学班 ID
+     * @return 选课记录集合
+     */
+    default List<CourseSelectionDO> listSelectionByTeachingClassId(Long teachingClassId) {
+        return selectList(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .eq(CourseSelectionDO::getTeachingClassId, teachingClassId)
+                .orderByAsc(CourseSelectionDO::getId));
+    }
+
+    /**
+     * 批量统计多个教学班的已选记录总数，教学班 ID 集合为空时返回 0
+     *
+     * @param teachingClassIds 教学班 ID 集合
+     * @return 已选记录总数
+     */
+    default long countSelectedByTeachingClassIds(List<Long> teachingClassIds) {
+        if (teachingClassIds == null || teachingClassIds.isEmpty()) {
+            return 0L;
+        }
+        return selectCount(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .in(CourseSelectionDO::getTeachingClassId, teachingClassIds)
+                .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.SELECTED));
+    }
+
+    /**
+     * 查询存在候补记录的教学班 ID 集合
+     *
+     * @return 教学班 ID 集合
+     */
+    default List<Long> listTeachingClassIdHavingWaiting() {
+        List<Object> records = selectObjs(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .select(CourseSelectionDO::getTeachingClassId)
+                .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.WAITING)
+                .groupBy(CourseSelectionDO::getTeachingClassId));
+        if (records == null) {
+            return List.of();
+        }
+        return records.stream()
+                .filter(Objects::nonNull)
+                .map(each -> ((Number) each).longValue())
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * 统计学生在指定学期下的已选课程数量
+     *
+     * @param studentId  学生 ID
+     * @param semesterId 学期 ID
+     * @return 已选课程数量
+     */
+    default long countSelectedByStudentAndSemester(Long studentId, Long semesterId) {
+        return selectCount(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .eq(CourseSelectionDO::getStudentId, studentId)
+                .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.SELECTED)
+                .inSql(CourseSelectionDO::getTeachingClassId,
+                        "SELECT id FROM teaching_class WHERE semester_id = " + semesterId));
+    }
+
+    /**
+     * 查询学生的全部学期选课记录，用于跨学期学分累计（C8 专用方法）
+     * 该方法不做任何学期过滤，也不限定状态，调用方按业务口径自行过滤
+     *
+     * @param studentId 学生 ID
+     * @return 选课记录集合
+     */
+    default List<CourseSelectionDO> listSelectionByStudentId(Long studentId) {
+        return selectList(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .eq(CourseSelectionDO::getStudentId, studentId)
+                .orderByAsc(CourseSelectionDO::getId));
     }
 
     /**

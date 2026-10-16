@@ -12,6 +12,7 @@ import com.smart.university.domain.enums.TeachingClassStatusEnum;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 教学班持久层，单表操作由 MyBatis-Plus 的 BaseMapper 提供能力；
@@ -122,6 +123,92 @@ public interface TeachingClassMapper extends BaseMapper<TeachingClassDO> {
      */
     default int updateTeachingClass(TeachingClassDO requestParam) {
         return updateById(requestParam);
+    }
+
+    /**
+     * 已选人数加一，带容量校验，未超容量才更新，返回影响行数
+     *
+     * @param teachingClassId 教学班 ID
+     * @param capacity        教学班容量
+     * @return 影响行数，为 0 表示已满或未匹配到教学班
+     */
+    default int updateSelectedCountWithCapacityCheck(Long teachingClassId, Integer capacity) {
+        return update(null, Wrappers.<TeachingClassDO>lambdaUpdate()
+                .setSql("selected_count = selected_count + 1")
+                .eq(TeachingClassDO::getId, teachingClassId)
+                .lt(TeachingClassDO::getSelectedCount, capacity));
+    }
+
+    /**
+     * 已选人数减一，最低减到 0，不会出现负数
+     *
+     * @param teachingClassId 教学班 ID
+     * @return 影响行数
+     */
+    default int restoreSelectedCount(Long teachingClassId) {
+        return update(null, Wrappers.<TeachingClassDO>lambdaUpdate()
+                .setSql("selected_count = IF(selected_count > 0, selected_count - 1, 0)")
+                .eq(TeachingClassDO::getId, teachingClassId));
+    }
+
+    /**
+     * 将已选人数重置为指定值，用于缓存一致性对账
+     *
+     * @param teachingClassId 教学班 ID
+     * @param targetCount     目标已选人数
+     * @return 影响行数
+     */
+    default int resetSelectedCount(Long teachingClassId, Integer targetCount) {
+        return update(null, Wrappers.<TeachingClassDO>lambdaUpdate()
+                .set(TeachingClassDO::getSelectedCount, targetCount)
+                .eq(TeachingClassDO::getId, teachingClassId));
+    }
+
+    /**
+     * 查询指定学期下的全部教学班
+     *
+     * @param semesterId 学期 ID
+     * @return 教学班集合
+     */
+    default List<TeachingClassDO> listTeachingClassBySemesterId(Long semesterId) {
+        return selectList(Wrappers.<TeachingClassDO>lambdaQuery()
+                .eq(TeachingClassDO::getSemesterId, semesterId)
+                .orderByAsc(TeachingClassDO::getId));
+    }
+
+    /**
+     * 统计指定学期下指定状态的教学班数量
+     *
+     * @param semesterId 学期 ID
+     * @param status     教学班状态，为空时只按学期过滤
+     * @return 数量
+     */
+    default long countTeachingClassBySemesterAndStatus(Long semesterId, TeachingClassStatusEnum status) {
+        return selectCount(Wrappers.<TeachingClassDO>lambdaQuery()
+                .eq(TeachingClassDO::getSemesterId, semesterId)
+                .eq(status != null, TeachingClassDO::getStatus, status));
+    }
+
+    /**
+     * 查询指定学期下已排课的课程 ID 集合
+     *
+     * @param semesterId 学期 ID
+     * @return 课程 ID 集合
+     */
+    default List<Long> listCourseIdBySemesterId(Long semesterId) {
+        List<Object> records = selectObjs(Wrappers.<TeachingClassDO>lambdaQuery()
+                .select(TeachingClassDO::getCourseId)
+                .eq(TeachingClassDO::getSemesterId, semesterId)
+                .isNotNull(TeachingClassDO::getCourseId)
+                .groupBy(TeachingClassDO::getCourseId));
+        if (records == null) {
+            return List.of();
+        }
+        return records.stream()
+                .filter(Objects::nonNull)
+                .map(each -> ((Number) each).longValue())
+                .distinct()
+                .toList();
     }
 
     /**

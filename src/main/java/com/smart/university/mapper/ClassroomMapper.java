@@ -59,6 +59,29 @@ public interface ClassroomMapper extends BaseMapper<ClassroomDO> {
     }
 
     /**
+     * 查询指定状态下的教室，1可用 0停用，状态为空时查询全部
+     *
+     * @param status 教室状态
+     * @return 教室集合
+     */
+    default List<ClassroomDO> listClassroomByStatus(Integer status) {
+        return selectList(Wrappers.<ClassroomDO>lambdaQuery()
+                .eq(status != null, ClassroomDO::getStatus, status)
+                .orderByAsc(ClassroomDO::getId));
+    }
+
+    /**
+     * 统计指定状态下的教室数量，1可用 0停用，状态为空时统计全部
+     *
+     * @param status 教室状态
+     * @return 数量
+     */
+    default long countClassroomByStatus(Integer status) {
+        return selectCount(Wrappers.<ClassroomDO>lambdaQuery()
+                .eq(status != null, ClassroomDO::getStatus, status));
+    }
+
+    /**
      * 保存教室
      *
      * @param requestParam 教室数据对象

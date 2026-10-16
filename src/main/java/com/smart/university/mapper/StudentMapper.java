@@ -92,6 +92,31 @@ public interface StudentMapper extends BaseMapper<StudentDO> {
     }
 
     /**
+     * 统计指定状态的学生数量，1正常 0停用
+     *
+     * @param status 学生状态，为空时统计全部
+     * @return 数量
+     */
+    default long countStudentByStatus(Integer status) {
+        return selectCount(Wrappers.<StudentDO>lambdaQuery()
+                .eq(status != null, StudentDO::getStatus, status));
+    }
+
+    /**
+     * 查询指定专业与年级下的学生，任一条件为空时只按非空条件过滤
+     *
+     * @param majorId 专业 ID
+     * @param gradeId 年级 ID
+     * @return 学生集合
+     */
+    default List<StudentDO> listStudentByMajorAndGrade(Long majorId, Long gradeId) {
+        return selectList(Wrappers.<StudentDO>lambdaQuery()
+                .eq(majorId != null, StudentDO::getMajorId, majorId)
+                .eq(gradeId != null, StudentDO::getGradeId, gradeId)
+                .orderByAsc(StudentDO::getId));
+    }
+
+    /**
      * 按条件分页查询学生
      *
      * @param page         分页参数

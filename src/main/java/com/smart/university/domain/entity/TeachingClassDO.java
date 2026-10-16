@@ -56,6 +56,11 @@ public class TeachingClassDO implements Serializable {
     private Integer capacity;
 
     /**
+     * 当前已选人数，与 course_selection 实时统计对齐，V1.2 容量控制使用
+     */
+    private Integer selectedCount;
+
+    /**
      * DRAFT/AVAILABLE/CLOSED/CANCELLED
      */
     private TeachingClassStatusEnum status;

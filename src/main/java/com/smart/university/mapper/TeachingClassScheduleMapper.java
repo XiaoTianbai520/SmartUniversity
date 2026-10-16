@@ -52,6 +52,48 @@ public interface TeachingClassScheduleMapper extends BaseMapper<TeachingClassSch
     }
 
     /**
+     * 查询指定学期下的全部排课，学期过滤通过教学班子查询实现
+     *
+     * @param semesterId 学期 ID
+     * @return 排课信息集合
+     */
+    default List<TeachingClassScheduleDO> listScheduleBySemesterId(Long semesterId) {
+        return selectList(Wrappers.<TeachingClassScheduleDO>lambdaQuery()
+                .inSql(TeachingClassScheduleDO::getTeachingClassId,
+                        "SELECT id FROM teaching_class WHERE semester_id = " + semesterId)
+                .orderByAsc(TeachingClassScheduleDO::getWeekday)
+                .orderByAsc(TeachingClassScheduleDO::getStartSection));
+    }
+
+    /**
+     * 查询教室下的全部排课
+     *
+     * @param classroomId 教室 ID
+     * @return 排课信息集合
+     */
+    default List<TeachingClassScheduleDO> listScheduleByClassroomId(Long classroomId) {
+        return selectList(Wrappers.<TeachingClassScheduleDO>lambdaQuery()
+                .eq(TeachingClassScheduleDO::getClassroomId, classroomId)
+                .orderByAsc(TeachingClassScheduleDO::getWeekday)
+                .orderByAsc(TeachingClassScheduleDO::getStartSection));
+    }
+
+    /**
+     * 查询指定学期下指定星期的全部排课
+     *
+     * @param semesterId 学期 ID
+     * @param weekday    星期：1周一...7周日
+     * @return 排课信息集合
+     */
+    default List<TeachingClassScheduleDO> listScheduleBySemesterIdAndWeekday(Long semesterId, Integer weekday) {
+        return selectList(Wrappers.<TeachingClassScheduleDO>lambdaQuery()
+                .inSql(TeachingClassScheduleDO::getTeachingClassId,
+                        "SELECT id FROM teaching_class WHERE semester_id = " + semesterId)
+                .eq(TeachingClassScheduleDO::getWeekday, weekday)
+                .orderByAsc(TeachingClassScheduleDO::getStartSection));
+    }
+
+    /**
      * 保存排课
      *
      * @param requestParam 排课数据对象

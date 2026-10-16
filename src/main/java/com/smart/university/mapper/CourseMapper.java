@@ -70,6 +70,18 @@ public interface CourseMapper extends BaseMapper<CourseDO> {
     }
 
     /**
+     * 查询指定课程类型下的课程，类型为空时查询全部
+     *
+     * @param courseType 课程类型
+     * @return 课程集合
+     */
+    default List<CourseDO> listCourseByType(CourseTypeEnum courseType) {
+        return selectList(Wrappers.<CourseDO>lambdaQuery()
+                .eq(courseType != null, CourseDO::getCourseType, courseType)
+                .orderByAsc(CourseDO::getId));
+    }
+
+    /**
      * 保存课程
      *
      * @param requestParam 课程数据对象

@@ -86,6 +86,51 @@ public interface ScoreMapper extends BaseMapper<ScoreDO> {
     }
 
     /**
+     * 查询学生在全部学期下已发布的成绩，用于跨学期学分累计（C8 专用方法）
+     * 该方法只按学生维度过滤，不做任何学期过滤
+     *
+     * @param studentId 学生 ID
+     * @return 成绩信息集合
+     */
+    default List<ScoreDO> listPublishedScoreByStudentId(Long studentId) {
+        LambdaQueryWrapper<ScoreDO> queryWrapper = Wrappers.lambdaQuery();
+        queryWrapper.eq(ScoreDO::getStatus, ScoreStatusEnum.PUBLISHED);
+        queryWrapper.inSql(ScoreDO::getCourseSelectionId,
+                "SELECT id FROM course_selection WHERE student_id = " + studentId);
+        queryWrapper.orderByDesc(ScoreDO::getPublishedAt);
+        return selectList(queryWrapper);
+    }
+
+    /**
+     * 查询指定学期下已发布的成绩，学期过滤通过教学班子查询实现
+     *
+     * @param semesterId 学期 ID
+     * @return 成绩信息集合
+     */
+    default List<ScoreDO> listPublishedScoreBySemesterId(Long semesterId) {
+        LambdaQueryWrapper<ScoreDO> queryWrapper = Wrappers.lambdaQuery();
+        queryWrapper.eq(ScoreDO::getStatus, ScoreStatusEnum.PUBLISHED);
+        queryWrapper.inSql(ScoreDO::getCourseSelectionId,
+                "SELECT cs.id FROM course_selection cs "
+                        + "JOIN teaching_class tc ON tc.id = cs.teaching_class_id "
+                        + "WHERE tc.semester_id = " + semesterId);
+        queryWrapper.orderByDesc(ScoreDO::getPublishedAt);
+        return selectList(queryWrapper);
+    }
+
+    /**
+     * 统计教学班已录入的成绩数量，用于成绩录入进度巡检
+     *
+     * @param teachingClassId 教学班 ID
+     * @return 数量
+     */
+    default long countScoreByTeachingClassId(Long teachingClassId) {
+        return selectCount(Wrappers.<ScoreDO>lambdaQuery()
+                .inSql(ScoreDO::getCourseSelectionId,
+                        "SELECT id FROM course_selection WHERE teaching_class_id = " + teachingClassId));
+    }
+
+    /**
      * 保存成绩
      *
      * @param requestParam 成绩数据对象

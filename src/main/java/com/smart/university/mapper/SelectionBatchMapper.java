@@ -10,6 +10,7 @@ import com.smart.university.domain.entity.SelectionBatchDO;
 import com.smart.university.domain.enums.SelectionBatchStatusEnum;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 选课批次持久层，单表操作由 MyBatis-Plus 的 BaseMapper 提供能力，
@@ -64,6 +65,32 @@ public interface SelectionBatchMapper extends BaseMapper<SelectionBatchDO> {
     default IPage<SelectionBatchDO> listSelectionBatchByCondition(IPage<SelectionBatchDO> page,
                                                                   SelectionBatchPageQueryReqDTO requestParam) {
         return selectPage(page, buildQueryWrapper(requestParam));
+    }
+
+    /**
+     * 查询到达开始时间仍未开启的批次，用于批次自动开启
+     *
+     * @param now 当前时间
+     * @return 选课批次集合
+     */
+    default List<SelectionBatchDO> listBatchToStart(LocalDateTime now) {
+        return selectList(Wrappers.<SelectionBatchDO>lambdaQuery()
+                .eq(SelectionBatchDO::getStatus, SelectionBatchStatusEnum.NOT_STARTED)
+                .le(SelectionBatchDO::getStartTime, now)
+                .orderByAsc(SelectionBatchDO::getStartTime));
+    }
+
+    /**
+     * 查询到达结束时间仍在进行中的批次，用于批次自动结束
+     *
+     * @param now 当前时间
+     * @return 选课批次集合
+     */
+    default List<SelectionBatchDO> listBatchToEnd(LocalDateTime now) {
+        return selectList(Wrappers.<SelectionBatchDO>lambdaQuery()
+                .eq(SelectionBatchDO::getStatus, SelectionBatchStatusEnum.IN_PROGRESS)
+                .le(SelectionBatchDO::getEndTime, now)
+                .orderByAsc(SelectionBatchDO::getEndTime));
     }
 
     /**
