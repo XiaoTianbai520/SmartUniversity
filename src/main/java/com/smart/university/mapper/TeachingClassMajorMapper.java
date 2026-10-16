@@ -66,6 +66,16 @@ public interface TeachingClassMajorMapper extends BaseMapper<TeachingClassMajorD
     }
 
     /**
+     * 统计指定专业下的教学班绑定数量，用于禁用专业前的关联校验
+     *
+     * @param majorId 专业 ID
+     * @return 数量
+     */
+    default long countTeachingClassMajorByMajorId(Long majorId) {
+        return selectCount(Wrappers.<TeachingClassMajorDO>lambdaQuery().eq(TeachingClassMajorDO::getMajorId, majorId));
+    }
+
+    /**
      * 批量查询多个教学班开放的专业 ID 配置，仅投影 teachingClassId 与 majorId
      *
      * @param teachingClassIds 教学班 ID 集合

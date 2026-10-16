@@ -12,6 +12,9 @@ import com.smart.university.domain.dto.req.MajorSaveReqDTO;
 import com.smart.university.domain.dto.req.StatusUpdateReqDTO;
 import com.smart.university.domain.dto.resp.MajorRespDTO;
 import com.smart.university.mapper.MajorMapper;
+import com.smart.university.mapper.StudentMapper;
+import com.smart.university.mapper.AcademicClassMapper;
+import com.smart.university.mapper.TeachingClassMajorMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.MajorService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,9 @@ import java.util.List;
 public class MajorServiceImpl extends ServiceImpl<MajorMapper, MajorDO> implements MajorService {
 
     private final MajorMapper majorMapper;
+    private final StudentMapper studentMapper;
+    private final AcademicClassMapper academicClassMapper;
+    private final TeachingClassMajorMapper teachingClassMajorMapper;
 
     @Override
     public PageResult<MajorRespDTO> pageMajor(MajorPageQueryReqDTO requestParam) {
@@ -78,6 +84,18 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, MajorDO> implemen
 
     @Override
     public void updateMajorStatus(Long majorId, StatusUpdateReqDTO requestParam) {
+        // 禁用（status=0）前必须校验该专业下是否仍存在关联数据，存在则禁止禁用
+        if (requestParam.getStatus() != null && requestParam.getStatus() == 0) {
+            if (studentMapper.countStudentByMajorId(majorId) > 0) {
+                throw new BizException(ResultCodeEnum.MAJOR_HAS_RELATED_STUDENT, "专业下存在关联学生，无法禁用");
+            }
+            if (academicClassMapper.countAcademicClassByMajorId(majorId) > 0) {
+                throw new BizException(ResultCodeEnum.MAJOR_HAS_RELATED_CLASS, "专业下存在关联行政班级，无法禁用");
+            }
+            if (teachingClassMajorMapper.countTeachingClassMajorByMajorId(majorId) > 0) {
+                throw new BizException(ResultCodeEnum.MAJOR_HAS_RELATED_TEACHING_CLASS, "专业下存在关联教学班，无法禁用");
+            }
+        }
         MajorDO majorDO = new MajorDO();
         majorDO.setId(majorId);
         majorDO.setStatus(requestParam.getStatus());

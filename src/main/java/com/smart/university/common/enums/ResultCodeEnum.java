@@ -253,7 +253,22 @@ public enum ResultCodeEnum {
     /**
      * 成绩必须在 0 到 100 之间
      */
-    SCORE_IMPORT_OUT_OF_RANGE(40932, "成绩必须在 0 到 100 之间");
+    SCORE_IMPORT_OUT_OF_RANGE(40932, "成绩必须在 0 到 100 之间"),
+
+    /**
+     * 专业下存在关联学生，无法禁用
+     */
+    MAJOR_HAS_RELATED_STUDENT(40933, "专业下存在关联学生，无法禁用"),
+
+    /**
+     * 专业下存在关联行政班级，无法禁用
+     */
+    MAJOR_HAS_RELATED_CLASS(40934, "专业下存在关联行政班级，无法禁用"),
+
+    /**
+     * 专业下存在关联教学班，无法禁用
+     */
+    MAJOR_HAS_RELATED_TEACHING_CLASS(40935, "专业下存在关联教学班，无法禁用");
 
     /**
      * 业务错误码

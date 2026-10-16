@@ -48,6 +48,16 @@ public interface AcademicClassMapper extends BaseMapper<AcademicClassDO> {
     }
 
     /**
+     * 统计指定专业下的行政班级数量，用于禁用专业前的关联校验
+     *
+     * @param majorId 专业 ID
+     * @return 数量
+     */
+    default long countAcademicClassByMajorId(Long majorId) {
+        return selectCount(Wrappers.<AcademicClassDO>lambdaQuery().eq(AcademicClassDO::getMajorId, majorId));
+    }
+
+    /**
      * 按条件分页查询行政班级
      *
      * @param page         分页参数

@@ -82,6 +82,16 @@ public interface StudentMapper extends BaseMapper<StudentDO> {
     }
 
     /**
+     * 统计指定专业下的学生数量，用于禁用专业前的关联校验
+     *
+     * @param majorId 专业 ID
+     * @return 数量
+     */
+    default long countStudentByMajorId(Long majorId) {
+        return selectCount(Wrappers.<StudentDO>lambdaQuery().eq(StudentDO::getMajorId, majorId));
+    }
+
+    /**
      * 按条件分页查询学生
      *
      * @param page         分页参数
