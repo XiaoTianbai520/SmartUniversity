@@ -268,7 +268,81 @@ public enum ResultCodeEnum {
     /**
      * 专业下存在关联教学班，无法禁用
      */
-    MAJOR_HAS_RELATED_TEACHING_CLASS(40935, "专业下存在关联教学班，无法禁用");
+    MAJOR_HAS_RELATED_TEACHING_CLASS(40935, "专业下存在关联教学班，无法禁用"),
+
+    // ---- V1.2 / V2.0 新增段：40933 ~ 40946（架构设计 §12.1）----
+    // 说明：40933 ~ 40935 与上方 V1.1「专业禁用关联校验」三个错误码数值重合，
+    // 重合部分由架构文档 §12.1 分配，抛出时按枚举实例取值，与上方枚举互不影响。
+
+    /**
+     * 名额扣减失败，请重试
+     */
+    CAPACITY_DEDUCT_FAILED(40933, "名额扣减失败，请重试"),
+
+    /**
+     * 容量缓存预热失败
+     */
+    CACHE_WARMUP_FAILED(40934, "容量缓存预热失败"),
+
+    /**
+     * 缓存一致性对账失败
+     */
+    CACHE_RECONCILE_FAILED(40935, "缓存一致性对账失败"),
+
+    /**
+     * 培养方案不存在
+     */
+    TRAINING_PLAN_NOT_EXIST(40936, "培养方案不存在"),
+
+    /**
+     * 该专业年级已存在培养方案
+     */
+    TRAINING_PLAN_DUPLICATE(40937, "该专业年级已存在培养方案"),
+
+    /**
+     * 培养方案学分配置不合法
+     */
+    TRAINING_PLAN_CREDIT_INVALID(40938, "培养方案学分配置不合法"),
+
+    /**
+     * 统计快照生成失败
+     */
+    STAT_SNAPSHOT_GENERATE_FAILED(40939, "统计快照生成失败"),
+
+    /**
+     * 定时任务不存在
+     */
+    SCHEDULE_TASK_NOT_EXIST(40940, "定时任务不存在"),
+
+    /**
+     * 定时任务已停用
+     */
+    SCHEDULE_TASK_DISABLED(40941, "定时任务已停用"),
+
+    /**
+     * 定时任务正在执行中
+     */
+    SCHEDULE_TASK_RUNNING(40942, "定时任务正在执行中"),
+
+    /**
+     * 学期尚未结束，不允许归档
+     */
+    SEMESTER_ARCHIVE_NOT_ALLOWED(40943, "学期尚未结束，不允许归档"),
+
+    /**
+     * 历史样本不足，无法给出预测
+     */
+    ANALYTICS_SAMPLE_INSUFFICIENT(40944, "历史样本不足，无法给出预测"),
+
+    /**
+     * 教室不存在
+     */
+    CLASSROOM_NOT_EXIST(40945, "教室不存在"),
+
+    /**
+     * 排课记录不存在
+     */
+    TEACHING_CLASS_SCHEDULE_NOT_EXIST(40946, "排课记录不存在");
 
     /**
      * 业务错误码

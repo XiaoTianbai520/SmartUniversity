@@ -33,7 +33,17 @@ public enum NoticeTypeEnum {
     /**
      * 成绩发布通知
      */
-    SCORE_PUBLISHED("SCORE_PUBLISHED", "成绩发布通知");
+    SCORE_PUBLISHED("SCORE_PUBLISHED", "成绩发布通知"),
+
+    /**
+     * 学分不足与毕业风险预警通知
+     */
+    CREDIT_WARNING("CREDIT_WARNING", "学分不足预警通知"),
+
+    /**
+     * 成绩分布异常预警通知
+     */
+    SCORE_ANOMALY("SCORE_ANOMALY", "成绩分布异常预警通知");
 
     /**
      * 数据库存储值

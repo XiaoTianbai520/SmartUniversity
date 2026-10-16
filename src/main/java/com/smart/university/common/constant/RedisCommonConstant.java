@@ -87,4 +87,49 @@ public final class RedisCommonConstant {
      * 教学班候补人数缓存过期时间（秒）
      */
     public static final long TEACHING_CLASS_WAITING_COUNT_TTL_SECONDS = 24 * 60 * 60L;
+
+    /**
+     * V1.2 新增：教学班已选人数计数，拼接教学班 ID
+     */
+    public static final String TEACHING_CLASS_SELECTED_COUNT_KEY = KEY_PREFIX + "teaching-class:selected-count:%s";
+
+    /**
+     * V1.2 新增：分布式任务锁，拼接任务编码
+     */
+    public static final String TASK_LOCK_KEY = KEY_PREFIX + "lock:task:%s";
+
+    /**
+     * V2.0 新增：教务看板缓存，拼学期 ID
+     */
+    public static final String DASHBOARD_OVERVIEW_KEY = KEY_PREFIX + "dashboard:overview:%s";
+
+    /**
+     * V1.2 新增：选课容量缓存降级标记
+     */
+    public static final String SELECTION_DEGRADED_KEY = KEY_PREFIX + "selection:degraded";
+
+    /**
+     * V2.0 新增：统计快照生成时间，拼接学期 ID
+     */
+    public static final String STAT_SNAPSHOT_TIME_KEY = KEY_PREFIX + "stat:snapshot-time:%s";
+
+    /**
+     * V1.2 新增：教学班已选人数计数过期时间（秒）
+     */
+    public static final long TEACHING_CLASS_SELECTED_COUNT_TTL_SECONDS = 24 * 60 * 60L;
+
+    /**
+     * V2.0 新增：教务看板缓存过期时间（秒）
+     */
+    public static final long DASHBOARD_OVERVIEW_TTL_SECONDS = 15 * 60L;
+
+    /**
+     * V1.2 新增：选课容量缓存降级标记过期时间（秒）
+     */
+    public static final long SELECTION_DEGRADED_TTL_SECONDS = 60L;
+
+    /**
+     * V2.0 新增：统计快照生成时间过期时间（秒）
+     */
+    public static final long STAT_SNAPSHOT_TIME_TTL_SECONDS = 24 * 60 * 60L;
 }

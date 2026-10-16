@@ -110,4 +110,53 @@ public final class RedisKeyUtil {
     public static String buildTeachingClassWaitlistNoKey(Long teachingClassId) {
         return String.format(RedisCommonConstant.TEACHING_CLASS_WAITLIST_NO_KEY, teachingClassId);
     }
+
+    /**
+     * 构建教学班已选人数计数 Key
+     *
+     * @param teachingClassId 教学班 ID
+     * @return Redis Key
+     */
+    public static String buildTeachingClassSelectedCountKey(Long teachingClassId) {
+        return String.format(RedisCommonConstant.TEACHING_CLASS_SELECTED_COUNT_KEY, teachingClassId);
+    }
+
+    /**
+     * 构建分布式任务锁 Key
+     *
+     * @param taskCode 任务编码
+     * @return Redis Key
+     */
+    public static String buildTaskLockKey(String taskCode) {
+        return String.format(RedisCommonConstant.TASK_LOCK_KEY, taskCode);
+    }
+
+    /**
+     * 构建教务看板缓存 Key
+     *
+     * @param semesterId 学期 ID
+     * @return Redis Key
+     */
+    public static String buildDashboardOverviewKey(Long semesterId) {
+        return String.format(RedisCommonConstant.DASHBOARD_OVERVIEW_KEY, semesterId);
+    }
+
+    /**
+     * 构建选课容量缓存降级标记 Key
+     *
+     * @return Redis Key
+     */
+    public static String buildSelectionDegradedKey() {
+        return RedisCommonConstant.SELECTION_DEGRADED_KEY;
+    }
+
+    /**
+     * 构建统计快照生成时间 Key
+     *
+     * @param semesterId 学期 ID
+     * @return Redis Key
+     */
+    public static String buildStatSnapshotTimeKey(Long semesterId) {
+        return String.format(RedisCommonConstant.STAT_SNAPSHOT_TIME_KEY, semesterId);
+    }
 }
