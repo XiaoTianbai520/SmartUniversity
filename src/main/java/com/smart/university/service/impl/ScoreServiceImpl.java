@@ -9,6 +9,7 @@ import com.smart.university.common.exception.BizException;
 import com.smart.university.domain.event.NoticeEvent;
 import com.smart.university.domain.event.NoticeEventPublisher;
 import com.smart.university.domain.event.NoticeTargetResolver;
+import com.smart.university.domain.event.ScorePublishedEvent;
 import com.smart.university.domain.enums.NoticeTypeEnum;
 import com.smart.university.domain.entity.CourseDO;
 import com.smart.university.domain.entity.CourseSelectionDO;
@@ -33,6 +34,7 @@ import com.smart.university.service.ScoreService;
 import com.smart.university.service.SemesterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,6 +78,8 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, ScoreDO> implemen
     private final NoticeEventPublisher noticeEventPublisher;
 
     private final NoticeTargetResolver noticeTargetResolver;
+
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -168,6 +172,15 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, ScoreDO> implemen
         int publishedCount = scoreMapper.updateScoreStatusBySelectionIds(
                 selectionIds, ScoreStatusEnum.PUBLISHED, now);
         publishScoreNotice(teachingClassId, selectionIds, publishedCount, now);
+        // A-06：成绩发布后发布统计事件，由监听器在事务提交后触发自动统计，不改动发布主逻辑
+        TeachingClassDO publishedClassDO = teachingClassMapper.getTeachingClassById(teachingClassId);
+        applicationEventPublisher.publishEvent(ScorePublishedEvent.builder()
+                .teachingClassId(teachingClassId)
+                .selectionIds(selectionIds)
+                .publishedCount(publishedCount)
+                .publishedAt(now)
+                .semesterId(publishedClassDO == null ? null : publishedClassDO.getSemesterId())
+                .build());
         ScorePublishRespDTO result = new ScorePublishRespDTO();
         result.setPublishedCount(publishedCount);
         return result;
