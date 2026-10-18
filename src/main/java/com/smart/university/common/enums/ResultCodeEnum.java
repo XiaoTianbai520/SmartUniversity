@@ -270,24 +270,27 @@ public enum ResultCodeEnum {
      */
     MAJOR_HAS_RELATED_TEACHING_CLASS(40935, "专业下存在关联教学班，无法禁用"),
 
-    // ---- V1.2 / V2.0 新增段：40933 ~ 40946（架构设计 §12.1）----
-    // 说明：40933 ~ 40935 与上方 V1.1「专业禁用关联校验」三个错误码数值重合，
-    // 重合部分由架构文档 §12.1 分配，抛出时按枚举实例取值，与上方枚举互不影响。
+    // ---- V1.2 容量缓存段：40947 ~ 40949 ----
+    // 跳号说明：架构设计 §12.1 原分配 40933~40935，但该段已被 V1.1「禁用专业前关联校验」
+    // （MAJOR_HAS_RELATED_STUDENT / MAJOR_HAS_RELATED_CLASS / MAJOR_HAS_RELATED_TEACHING_CLASS）占用，
+    // 导致 ResultCodeEnum#getByCode 只返回 V1.1 的枚举、容量错误码无法反查。
+    // 经主理人裁决，V1.2 三个容量错误码临时改用 40947~40949（枚举名与文案不变），
+    // 待架构师最终确认号段后再调整（届时只改这三个数字）。
 
     /**
      * 名额扣减失败，请重试
      */
-    CAPACITY_DEDUCT_FAILED(40933, "名额扣减失败，请重试"),
+    CAPACITY_DEDUCT_FAILED(40947, "名额扣减失败，请重试"),
 
     /**
      * 容量缓存预热失败
      */
-    CACHE_WARMUP_FAILED(40934, "容量缓存预热失败"),
+    CACHE_WARMUP_FAILED(40948, "容量缓存预热失败"),
 
     /**
      * 缓存一致性对账失败
      */
-    CACHE_RECONCILE_FAILED(40935, "缓存一致性对账失败"),
+    CACHE_RECONCILE_FAILED(40949, "缓存一致性对账失败"),
 
     /**
      * 培养方案不存在
