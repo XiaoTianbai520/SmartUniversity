@@ -58,6 +58,7 @@ import com.smart.university.mapper.TeachingClassScheduleMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.SelectionBatchService;
 import com.smart.university.service.SemesterService;
+import com.smart.university.service.SelectionCapacityService;
 import com.smart.university.service.TeachingClassService;
 import com.smart.university.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
@@ -84,6 +85,8 @@ import java.util.stream.Collectors;
 public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, TeachingClassDO> implements TeachingClassService {
 
     private final TeachingClassMapper teachingClassMapper;
+
+    private final SelectionCapacityService selectionCapacityService;
 
     private final TeachingClassMajorMapper teachingClassMajorMapper;
 
@@ -175,6 +178,8 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
             teachingClassGradeDO.setGradeId(each);
             teachingClassGradeMapper.saveTeachingClassGrade(teachingClassGradeDO);
         }
+        // V1.2 追加：容量或归属变更后失效容量缓存，下一次选课按 DB 权威值重新对齐
+        invalidateCapacityCache(teachingClassId);
         notifyTeachingClassAdjusted(originTeachingClassDO, teachingClassDO);
         return teachingClassId;
     }
@@ -190,6 +195,8 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
         teachingClassDO.setId(teachingClassId);
         teachingClassDO.setStatus(statusEnum);
         teachingClassMapper.updateTeachingClass(teachingClassDO);
+        // V1.2 追加：状态变更后失效容量缓存，不得影响下方既有的通知与递补逻辑
+        invalidateCapacityCache(teachingClassId);
         if (TeachingClassStatusEnum.CANCELLED != statusEnum && TeachingClassStatusEnum.CLOSED != statusEnum) {
             return;
         }
@@ -648,5 +655,18 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
             result.setGradeIds(gradeIdMap.getOrDefault(each.getId(), List.of()));
             return result;
         }).toList();
+    }
+
+    /**
+     * 失效教学班容量缓存，失败只记录日志，不影响业务主流程
+     *
+     * @param teachingClassId 教学班 ID
+     */
+    private void invalidateCapacityCache(Long teachingClassId) {
+        try {
+            selectionCapacityService.invalidate(teachingClassId);
+        } catch (Exception ex) {
+            log.warn("教学班容量缓存失效失败，teachingClassId={}，异常摘要：{}", teachingClassId, ex.getMessage());
+        }
     }
 }
