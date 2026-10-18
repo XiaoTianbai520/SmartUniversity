@@ -40,6 +40,7 @@ import com.smart.university.mapper.TeachingClassMapper;
 import com.smart.university.mapper.TeachingClassScheduleMapper;
 import com.smart.university.service.SelectionBatchService;
 import com.smart.university.service.SemesterService;
+import com.smart.university.service.SelectionCapacityService;
 import com.smart.university.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -84,6 +85,8 @@ public class WaitlistServiceImpl implements WaitlistService {
     private final SelectionBatchService selectionBatchService;
 
     private final StringRedisTemplate stringRedisTemplate;
+
+    private final SelectionCapacityService selectionCapacityService;
 
     private final NoticeEventPublisher noticeEventPublisher;
 
@@ -547,18 +550,8 @@ public class WaitlistServiceImpl implements WaitlistService {
         if (!redisDeductEnabled) {
             return;
         }
-        long selectedCount = courseSelectionMapper.countSelectedByTeachingClassId(teachingClassId);
-        String key = RedisKeyUtil.buildTeachingClassCapacityKey(teachingClassId);
-        stringRedisTemplate.opsForValue().setIfAbsent(key, String.valueOf(selectedCount));
-        long afterIncrement = stringRedisTemplate.opsForValue().increment(key);
-        if (afterIncrement > capacity) {
-            stringRedisTemplate.opsForValue().decrement(key);
-            throw new BizException(ResultCodeEnum.CLASS_CAPACITY_FULL);
-        }
-        if (afterIncrement > selectedCount + 1) {
-            // Redis 计数与数据库不一致时以数据库为准，避免缓存漂移导致误判满员
-            stringRedisTemplate.opsForValue().set(key, String.valueOf(selectedCount + 1));
-        }
+        // V1.2：改调统一容量服务，预扣与漂移校正口径与选课主链路一致
+        selectionCapacityService.tryDeduct(teachingClassId, capacity);
     }
 
     /**
