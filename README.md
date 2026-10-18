@@ -372,3 +372,23 @@ curl -s -X POST $BASE/admin/students/import \
 
 > 早期文档提到的 `target/smoke.py` / `target/smoke_admin.py` **并未随本仓库提交**（仅留存于远程测试机）。
 > 日常联调用上面的 **Knife4j 页面** 或 **curl** 即可 100% 覆盖；若需要一份可重复的本地冒烟脚本，可基于上方 curl 流程生成。
+
+---
+
+## V1.2（高并发优化）+ V2.0（智慧教务）状态
+
+> 接手自上一开发团队交接文档 `docs/V1.2_V2.0_交接说明.md`。T0/W1/W3/W4/W5 已由前团队交付；本仓库已收口 **W2（降级/对账/压测）** 与 **9 项待裁决问题**，并完成 **T9 集成联调**（文档侧）。逐条验收见 `docs/V1.2_V2.0_T9验收清单.md`。
+
+### 已完成
+
+- **W2 降级/对账/压测**：三方对账服务 + 定时任务（34.3 手动接口）、候补递补双保险补丁（#1）、42.1/42.2/42.3 教务端接口（#6）、成绩统计 @Async 专用线程池（#7）、三档并发压测脚本与压测报告。
+- **9 项裁决全部裁定**：#1/#6/#7 代码落地；#2/#3/#4/#8/#9 文档/配置闭环；#5 保持 `redis-deduct-enabled=true`（待压测实测确认）。
+- **T9-1 全量编译**：`mvn -o -B clean compile -DskipTests` BUILD SUCCESS。
+- **T9-2 接口文档 §34**：cache 预热/状态/对账三接口已补录到 `docs/接口文档.md`。
+- **T9-4 静态走查**：C8 红线（`CreditProgressServiceImpl`/`GraduationRiskServiceImpl`/`CreditWarningTask` 无 forbidden 引用）、S-05 无 Redis 计数读取、新增接口 `@RequireRole` 均已验证。
+
+### 需在真实环境（192.168.1.102）实测 / 待裁决
+
+- V1.2-2 运行时冒烟、V1.2-3~V1.2-11（预热/Lua/回补/DB兜底/降级/对账周期/压测红线）需在运行 Redis + MySQL 的环境实测。
+- V2.0-15：§34 仅覆盖 cache 三接口，其余 24 个新增 V2.0 接口尚未逐条补录到 `docs/接口文档.md`（契约见 `docs/V1.2_V2.0_接口清单.md`）。
+- 死代码 `CreditWarningRespDTO` 评估删除；本地 commit 是否 push GitHub、未跟踪交接文档是否一并提交，待用户决策。
