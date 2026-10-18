@@ -48,6 +48,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -541,17 +543,48 @@ public class WaitlistServiceImpl implements WaitlistService {
     }
 
     /**
-     * 扣减教学班容量，与选课主流程保持一致：开启 Redis 时走原子自增，否则以数据库实时统计为准
+     * 扣减教学班容量：V1.2 走「Redis Lua 预扣 + DB 条件更新」双保险，
+     * 与选课主链路 {@code CourseSelectionServiceImpl#deductCapacity} 完全对齐；
+     * 开关关闭时保持 V1.1 行为（仅以数据库实时统计判定，不写 Redis、不动 selected_count）
      *
      * @param teachingClassId 教学班 ID
      * @param capacity        教学班容量
      */
     private void deductCapacity(Long teachingClassId, Integer capacity) {
         if (!redisDeductEnabled) {
+            long selectedCount = courseSelectionMapper.countSelectedByTeachingClassId(teachingClassId);
+            if (selectedCount >= capacity) {
+                throw new BizException(ResultCodeEnum.CLASS_CAPACITY_FULL);
+            }
             return;
         }
-        // V1.2：改调统一容量服务，预扣与漂移校正口径与选课主链路一致
+        // 第 1 道防线：Redis Lua 原子预扣减，满员 / 漂移 / 降级均在容量服务内部处理
         selectionCapacityService.tryDeduct(teachingClassId, capacity);
+        registerCapacityCompensation(teachingClassId);
+        // 第 2 道防线：DB 条件更新，唯一真正防止超卖的强制约束
+        int updatedRows = teachingClassMapper.updateSelectedCountWithCapacityCheck(teachingClassId, capacity);
+        if (updatedRows == 0) {
+            throw new BizException(ResultCodeEnum.CLASS_CAPACITY_FULL);
+        }
+    }
+
+    /**
+     * 注册事务回滚补偿，事务未提交 / 回滚时回补 Redis 预扣计数，避免预扣成功但业务回滚导致的计数漂移
+     *
+     * @param teachingClassId 教学班 ID
+     */
+    private void registerCapacityCompensation(Long teachingClassId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (TransactionSynchronization.STATUS_COMMITTED != status) {
+                    selectionCapacityService.compensateRestore(teachingClassId);
+                }
+            }
+        });
     }
 
     /**
