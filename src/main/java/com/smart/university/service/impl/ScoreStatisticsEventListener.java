@@ -5,6 +5,7 @@ import com.smart.university.domain.event.ScorePublishedEvent;
 import com.smart.university.service.StatisticsSnapshotService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -29,6 +30,7 @@ public class ScoreStatisticsEventListener {
      *
      * @param event 成绩发布事件
      */
+    @Async("scoreStatisticsExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void handleScorePublished(ScorePublishedEvent event) {
         if (event == null || event.getTeachingClassId() == null) {
