@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollUtil;
 import com.smart.university.common.context.UserContextHolder;
 import com.smart.university.common.enums.ResultCodeEnum;
 import com.smart.university.common.exception.BizException;
-import com.smart.university.common.util.RedisKeyUtil;
 import com.smart.university.domain.entity.CourseDO;
 import com.smart.university.domain.entity.CourseSelectionDO;
 import com.smart.university.domain.entity.SelectionBatchClassDO;
@@ -32,6 +31,7 @@ import com.smart.university.mapper.TeachingClassMapper;
 import com.smart.university.mapper.TeachingClassScheduleMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.CourseSelectionService;
+import com.smart.university.service.SelectionCapacityService;
 import com.smart.university.service.ScheduleService;
 import com.smart.university.service.SelectionBatchService;
 import com.smart.university.service.SemesterService;
@@ -39,8 +39,9 @@ import com.smart.university.service.WaitlistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -86,10 +87,10 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
 
     private final ScheduleService scheduleService;
 
-    private final StringRedisTemplate stringRedisTemplate;
+    private final SelectionCapacityService selectionCapacityService;
 
     /**
-     * 是否开启 Redis 容量预扣减，关闭时退化为纯数据库事务
+     * 是否开启 Redis 容量预扣减，关闭时退化为纯数据库事务（V1.1 行为）
      */
     @Value("${smart-university.selection.redis-deduct-enabled}")
     private boolean redisDeductEnabled;
@@ -401,30 +402,47 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
     }
 
     /**
-     * 扣减教学班容量，开启 Redis 时走原子自增预扣减，否则以数据库实时统计为准
+     * 扣减教学班容量：V1.2 走「Redis Lua 预扣 + DB 条件更新」双保险，
+     * 开关关闭时保持 V1.1 行为（仅以数据库实时统计判定，不写 Redis、不动 selected_count）
      *
      * @param teachingClassId 教学班 ID
      * @param capacity        教学班容量
      */
     private void deductCapacity(Long teachingClassId, Integer capacity) {
-        long selectedCount = courseSelectionMapper.countSelectedByTeachingClassId(teachingClassId);
         if (!redisDeductEnabled) {
+            long selectedCount = courseSelectionMapper.countSelectedByTeachingClassId(teachingClassId);
             if (selectedCount >= capacity) {
                 throw new BizException(ResultCodeEnum.CLASS_CAPACITY_FULL);
             }
             return;
         }
-        String key = RedisKeyUtil.buildTeachingClassCapacityKey(teachingClassId);
-        stringRedisTemplate.opsForValue().setIfAbsent(key, String.valueOf(selectedCount));
-        long afterIncrement = stringRedisTemplate.opsForValue().increment(key);
-        if (afterIncrement > capacity) {
-            stringRedisTemplate.opsForValue().decrement(key);
+        // 第 1 道防线：Redis Lua 原子预扣减，满员 / 漂移 / 降级均在容量服务内部处理
+        selectionCapacityService.tryDeduct(teachingClassId, capacity);
+        registerCapacityCompensation(teachingClassId);
+        // 第 2 道防线：DB 条件更新，唯一真正防止超卖的强制约束
+        int updatedRows = teachingClassMapper.updateSelectedCountWithCapacityCheck(teachingClassId, capacity);
+        if (updatedRows == 0) {
             throw new BizException(ResultCodeEnum.CLASS_CAPACITY_FULL);
         }
-        if (afterIncrement > selectedCount + 1) {
-            // Redis 计数与数据库不一致时以数据库为准，避免缓存漂移导致误判满员
-            stringRedisTemplate.opsForValue().set(key, String.valueOf(selectedCount + 1));
+    }
+
+    /**
+     * 注册事务回滚补偿，事务未提交时回补 Redis 预扣计数
+     *
+     * @param teachingClassId 教学班 ID
+     */
+    private void registerCapacityCompensation(Long teachingClassId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
         }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (STATUS_COMMITTED != status) {
+                    selectionCapacityService.compensateRestore(teachingClassId);
+                }
+            }
+        });
     }
 
     /**
@@ -433,10 +451,10 @@ public class CourseSelectionServiceImpl extends ServiceImpl<CourseSelectionMappe
      * @param teachingClassId 教学班 ID
      */
     private void restoreCapacity(Long teachingClassId) {
-        String key = RedisKeyUtil.buildTeachingClassCapacityKey(teachingClassId);
-        if (redisDeductEnabled && Boolean.TRUE.equals(stringRedisTemplate.hasKey(key))) {
-            stringRedisTemplate.opsForValue().decrement(key);
+        if (!redisDeductEnabled) {
+            return;
         }
+        selectionCapacityService.restore(teachingClassId);
     }
 
     private List<ScheduleRespDTO> convertSchedule(List<TeachingClassScheduleDO> scheduleDOList) {
