@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -53,9 +55,29 @@ public class EnrollmentForecastServiceImpl implements EnrollmentForecastService 
     private static final String SAMPLE_INSUFFICIENT_REASON = "历史样本不足";
 
     /**
-     * 历史学期扫描上限
+     * 历史学期扫描绝对上限（安全护栏，不再作为主驱动）
      */
     private static final int SEMESTER_SCAN_LIMIT = 200;
+
+    /**
+     * 历史学期回看数量（仅取最近 N 个非当前学期）
+     */
+    private static final int HISTORY_LOOKBACK_SEMESTERS = 8;
+
+    /**
+     * 历史学期回看时间窗（年）
+     */
+    private static final int HISTORY_LOOKBACK_YEARS = 5;
+
+    /**
+     * 招生预测缓存 TTL（毫秒），10 分钟
+     */
+    private static final long FORECAST_CACHE_TTL_MILLIS = 10L * 60 * 1000;
+
+    /**
+     * 招生预测结果内存缓存（学期 ID -> 预测结果），线程安全
+     */
+    private final Map<Long, ForecastCache> forecastCache = new ConcurrentHashMap<>();
 
     private final TeachingClassMapper teachingClassMapper;
     private final CourseSelectionMapper courseSelectionMapper;
@@ -80,12 +102,28 @@ public class EnrollmentForecastServiceImpl implements EnrollmentForecastService 
         Long targetSemesterId = requestParam.getSemesterId() == null
                 ? semesterService.getCurrentSemester().getId()
                 : requestParam.getSemesterId();
+        ForecastCache cache = forecastCache.get(targetSemesterId);
+        long now = System.currentTimeMillis();
+        List<EnrollmentForecastItemRespDTO> fullRecords;
+        if (cache != null && cache.expireAt > now) {
+            fullRecords = cache.records;
+        } else {
+            fullRecords = computeFullForecast(targetSemesterId);
+            forecastCache.put(targetSemesterId, new ForecastCache(fullRecords, now + FORECAST_CACHE_TTL_MILLIS));
+        }
+        return buildForecastResponse(targetSemesterId, fullRecords, requestParam);
+    }
+
+    /**
+     * 计算全量招生预测明细（按预测需求降序），结果不裁剪 topN、不应用课程过滤，便于缓存复用
+     *
+     * @param targetSemesterId 学期 ID
+     * @return 全量预测明细集合
+     */
+    private List<EnrollmentForecastItemRespDTO> computeFullForecast(Long targetSemesterId) {
         Map<Long, List<TeachingClassDO>> courseClassMap = buildCourseClassMap(targetSemesterId);
         Map<Long, Map<Long, List<Long>>> historyClassMap = buildHistoryClassMap(targetSemesterId);
-        List<Long> courseIds = courseClassMap.keySet().stream()
-                .filter(each -> requestParam.getCourseId() == null || requestParam.getCourseId().equals(each))
-                .sorted()
-                .toList();
+        List<Long> courseIds = courseClassMap.keySet().stream().sorted().toList();
         Map<Long, CourseDO> courseMap = courseIds.isEmpty()
                 ? Map.of()
                 : courseMapper.listCourseByIds(courseIds).stream()
@@ -96,17 +134,34 @@ public class EnrollmentForecastServiceImpl implements EnrollmentForecastService 
         }
         records.sort(Comparator.comparing(EnrollmentForecastItemRespDTO::getForecastDemand, Comparator.reverseOrder())
                 .thenComparing(EnrollmentForecastItemRespDTO::getCourseId));
-        int topN = requestParam.getTopN() == null || requestParam.getTopN() < 1
-                ? DEFAULT_TOP_N
-                : requestParam.getTopN();
-        // 显式要求某课程的预测且样本不足时，按 40.2 约定抛出 40944
+        return records;
+    }
+
+    /**
+     * 基于全量预测明细，按请求参数裁剪课程、topN，并处理样本不足异常
+     *
+     * @param targetSemesterId 学期 ID
+     * @param fullRecords      全量预测明细
+     * @param requestParam     请求参数
+     * @return 招生预测出参
+     */
+    private EnrollmentForecastRespDTO buildForecastResponse(Long targetSemesterId,
+                                                           List<EnrollmentForecastItemRespDTO> fullRecords,
+                                                           EnrollmentForecastQueryReqDTO requestParam) {
+        List<EnrollmentForecastItemRespDTO> records = fullRecords;
         if (requestParam.getCourseId() != null) {
+            records = fullRecords.stream()
+                    .filter(each -> requestParam.getCourseId().equals(each.getCourseId()))
+                    .toList();
             boolean insufficient = records.isEmpty()
                     || Boolean.TRUE.equals(records.get(0).getSampleInsufficient());
             if (insufficient) {
                 throw new BizException(ResultCodeEnum.ANALYTICS_SAMPLE_INSUFFICIENT);
             }
         }
+        int topN = requestParam.getTopN() == null || requestParam.getTopN() < 1
+                ? DEFAULT_TOP_N
+                : requestParam.getTopN();
         EnrollmentForecastRespDTO result = new EnrollmentForecastRespDTO();
         result.setSemesterId(targetSemesterId);
         result.setRecords(records.stream().limit(topN).toList());
@@ -141,11 +196,16 @@ public class EnrollmentForecastServiceImpl implements EnrollmentForecastService 
         List<SemesterDO> semesterDOList = semesterMapper
                 .listSemesterByCondition(Page.of(1, SEMESTER_SCAN_LIMIT), requestParam)
                 .getRecords();
+        LocalDate historyWindowStart = LocalDate.now().minusYears(HISTORY_LOOKBACK_YEARS);
+        List<SemesterDO> historySemesterList = semesterDOList.stream()
+                .filter(each -> !Objects.equals(each.getId(), currentSemesterId))
+                .filter(each -> each.getEndDate() != null && !each.getEndDate().isBefore(historyWindowStart))
+                .sorted(Comparator.comparing(SemesterDO::getEndDate,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(HISTORY_LOOKBACK_SEMESTERS)
+                .toList();
         Map<Long, Map<Long, List<Long>>> result = new HashMap<>();
-        for (SemesterDO each : semesterDOList) {
-            if (Objects.equals(each.getId(), currentSemesterId)) {
-                continue;
-            }
+        for (SemesterDO each : historySemesterList) {
             Map<Long, List<Long>> courseClassIdMap = new HashMap<>();
             for (TeachingClassDO teachingClassDO : teachingClassMapper.listTeachingClassBySemesterId(each.getId())) {
                 if (TeachingClassStatusEnum.CANCELLED == teachingClassDO.getStatus()
@@ -181,9 +241,10 @@ public class EnrollmentForecastServiceImpl implements EnrollmentForecastService 
             currentCapacity += each.getCapacity() == null ? 0 : each.getCapacity();
         }
         long selectedCount = courseSelectionMapper.countSelectedByTeachingClassIds(teachingClassIds);
+        Map<Long, Long> waitingMap = courseSelectionMapper.countWaitingMapByTeachingClassIds(teachingClassIds);
         long waitingCount = 0L;
         for (TeachingClassDO each : teachingClassDOList) {
-            waitingCount += courseSelectionMapper.countWaitingByTeachingClassId(each.getId());
+            waitingCount += waitingMap.getOrDefault(each.getId(), 0L);
         }
         List<Long> historySampleList = new ArrayList<>();
         for (Map<Long, List<Long>> each : historyClassMap.values()) {
@@ -264,5 +325,26 @@ public class EnrollmentForecastServiceImpl implements EnrollmentForecastService 
         return "历史同期均值 " + historyAvgSelected + " 人，本期已选 " + selectedCount
                 + " + 候补 " + waitingCount + "，按扩容系数 " + expansionFactor
                 + " 预测需求 " + forecastDemand + " 人";
+    }
+
+    /**
+     * 招生预测缓存值，包含全量预测明细与过期时间戳
+     */
+    private static class ForecastCache {
+
+        /**
+         * 全量招生预测明细（已按预测需求降序排序，未裁剪 topN）
+         */
+        private final List<EnrollmentForecastItemRespDTO> records;
+
+        /**
+         * 过期时间戳（毫秒）
+         */
+        private final long expireAt;
+
+        ForecastCache(List<EnrollmentForecastItemRespDTO> records, long expireAt) {
+            this.records = records;
+            this.expireAt = expireAt;
+        }
     }
 }

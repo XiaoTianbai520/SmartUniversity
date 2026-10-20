@@ -68,11 +68,17 @@ public class ClassroomRecommendServiceImpl implements ClassroomRecommendService 
                 && requestParam.getStartWeek() != null
                 && requestParam.getEndWeek() != null;
         List<ClassroomRecommendItemRespDTO> records = new ArrayList<>();
+        // 一次性查回全部候选教室的排课，按教室 ID 分组后在内存中判定冲突，避免逐教室 N+1 查询
+        Map<Long, List<TeachingClassScheduleDO>> scheduleMap = timeSpecified
+                ? teachingClassScheduleMapper
+                    .listScheduleByClassroomIds(classroomDOList.stream().map(ClassroomDO::getId).toList())
+                    .stream()
+                    .collect(Collectors.groupingBy(TeachingClassScheduleDO::getClassroomId))
+                : Map.of();
         for (ClassroomDO each : classroomDOList) {
             boolean conflict = false;
             if (timeSpecified) {
-                for (TeachingClassScheduleDO scheduleDO : teachingClassScheduleMapper
-                        .listScheduleByClassroomId(each.getId())) {
+                for (TeachingClassScheduleDO scheduleDO : scheduleMap.getOrDefault(each.getId(), List.of())) {
                     if (ScheduleConflictUtil.isConflict(requestParam.getWeekday(), requestParam.getStartWeek(),
                             requestParam.getEndWeek(), requestParam.getStartSection(), requestParam.getEndSection(),
                             scheduleDO)) {

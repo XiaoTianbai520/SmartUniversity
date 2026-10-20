@@ -251,6 +251,33 @@ public interface CourseSelectionMapper extends BaseMapper<CourseSelectionDO> {
     }
 
     /**
+     * 批量统计多个教学班的候补人数，返回教学班 ID 到候补人数的映射
+     *
+     * <p>通过一次 IN 查询取回命中的教学班 ID，再在内存中按教学班聚合计数，避免逐教学班 N+1 查询。
+     *
+     * @param teachingClassIds 教学班 ID 集合
+     * @return 教学班 ID 到候补人数的映射
+     */
+    default Map<Long, Long> countWaitingMapByTeachingClassIds(List<Long> teachingClassIds) {
+        if (teachingClassIds == null || teachingClassIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Object> records = selectObjs(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .select(CourseSelectionDO::getTeachingClassId)
+                .in(CourseSelectionDO::getTeachingClassId, teachingClassIds)
+                .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.WAITING));
+        Map<Long, Long> result = new HashMap<>();
+        for (Object each : records) {
+            if (each == null) {
+                continue;
+            }
+            Long classId = ((Number) each).longValue();
+            result.merge(classId, 1L, Long::sum);
+        }
+        return result;
+    }
+
+    /**
      * 查询存在候补记录的教学班 ID 集合
      *
      * @return 教学班 ID 集合

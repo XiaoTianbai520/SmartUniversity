@@ -79,6 +79,22 @@ public interface TeachingClassScheduleMapper extends BaseMapper<TeachingClassSch
     }
 
     /**
+     * 批量查询多个教室下的全部排课
+     *
+     * @param classroomIds 教室 ID 集合
+     * @return 排课信息集合
+     */
+    default List<TeachingClassScheduleDO> listScheduleByClassroomIds(List<Long> classroomIds) {
+        if (classroomIds == null || classroomIds.isEmpty()) {
+            return List.of();
+        }
+        return selectList(Wrappers.<TeachingClassScheduleDO>lambdaQuery()
+                .in(TeachingClassScheduleDO::getClassroomId, classroomIds)
+                .orderByAsc(TeachingClassScheduleDO::getWeekday)
+                .orderByAsc(TeachingClassScheduleDO::getStartSection));
+    }
+
+    /**
      * 查询指定学期下指定星期的全部排课
      *
      * @param semesterId 学期 ID
