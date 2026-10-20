@@ -9,7 +9,9 @@ import com.smart.university.domain.dto.req.StudentSelectionQueryReqDTO;
 import com.smart.university.domain.entity.CourseSelectionDO;
 import com.smart.university.domain.enums.SelectionStatusEnum;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -219,6 +221,33 @@ public interface CourseSelectionMapper extends BaseMapper<CourseSelectionDO> {
         return selectCount(Wrappers.<CourseSelectionDO>lambdaQuery()
                 .in(CourseSelectionDO::getTeachingClassId, teachingClassIds)
                 .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.SELECTED));
+    }
+
+    /**
+     * 批量统计多个教学班的已选人数，返回教学班 ID 到已选人数的映射
+     *
+     * <p>通过一次 IN 查询取回命中的教学班 ID，再在内存中按教学班聚合计数，避免逐教学班 N+1 查询。
+     *
+     * @param teachingClassIds 教学班 ID 集合
+     * @return 教学班 ID 到已选人数的映射
+     */
+    default Map<Long, Long> countSelectedMapByTeachingClassIds(List<Long> teachingClassIds) {
+        if (teachingClassIds == null || teachingClassIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Object> records = selectObjs(Wrappers.<CourseSelectionDO>lambdaQuery()
+                .select(CourseSelectionDO::getTeachingClassId)
+                .in(CourseSelectionDO::getTeachingClassId, teachingClassIds)
+                .eq(CourseSelectionDO::getStatus, SelectionStatusEnum.SELECTED));
+        Map<Long, Long> result = new HashMap<>();
+        for (Object each : records) {
+            if (each == null) {
+                continue;
+            }
+            Long classId = ((Number) each).longValue();
+            result.merge(classId, 1L, Long::sum);
+        }
+        return result;
     }
 
     /**

@@ -632,6 +632,8 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
 
         // 16.2 列表 / 16.3 详情：批量回填适用专业与年级 ID，仅对当前页教学班做 IN 查询，避免 N+1
         List<Long> classIds = teachingClassDOList.stream().map(TeachingClassDO::getId).toList();
+        // 批量查询已选人数，避免逐教学班 N+1
+        Map<Long, Long> selectedCountMap = courseSelectionMapper.countSelectedMapByTeachingClassIds(classIds);
         Map<Long, List<Long>> majorIdMap = teachingClassMajorMapper.listByTeachingClassIds(classIds).stream()
                 .collect(Collectors.groupingBy(TeachingClassMajorDO::getTeachingClassId,
                         Collectors.mapping(TeachingClassMajorDO::getMajorId,
@@ -649,7 +651,7 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
             CourseDO courseDO = courseMap.get(each.getCourseId());
             result.setCourseName(courseDO == null ? null : courseDO.getCourseName());
             result.setStatus(each.getStatus() == null ? null : each.getStatus().name());
-            result.setSelectedCount(courseSelectionMapper.countSelectedByTeachingClassId(each.getId()));
+            result.setSelectedCount(selectedCountMap.getOrDefault(each.getId(), 0L));
             result.setSchedules(convertSchedule(scheduleMap.getOrDefault(each.getId(), List.of())));
             result.setMajorIds(majorIdMap.getOrDefault(each.getId(), List.of()));
             result.setGradeIds(gradeIdMap.getOrDefault(each.getId(), List.of()));
