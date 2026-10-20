@@ -10,7 +10,9 @@ import com.smart.university.domain.dto.req.StudentSelectionQueryReqDTO;
 import com.smart.university.domain.entity.CourseSelectionDO;
 import com.smart.university.domain.entity.DataAuditIssueDO;
 import com.smart.university.domain.entity.ScoreDO;
+import com.smart.university.domain.entity.ClassroomDO;
 import com.smart.university.domain.entity.SemesterDO;
+import com.smart.university.domain.entity.TeacherDO;
 import com.smart.university.domain.entity.TeachingClassDO;
 import com.smart.university.domain.entity.TeachingClassScheduleDO;
 import com.smart.university.domain.enums.ScoreStatusEnum;
@@ -21,6 +23,8 @@ import com.smart.university.mapper.CourseSelectionMapper;
 import com.smart.university.mapper.DataAuditIssueMapper;
 import com.smart.university.mapper.ScoreMapper;
 import com.smart.university.mapper.TeachingClassMapper;
+import com.smart.university.mapper.ClassroomMapper;
+import com.smart.university.mapper.TeacherMapper;
 import com.smart.university.mapper.TeachingClassScheduleMapper;
 import com.smart.university.service.SemesterService;
 import lombok.RequiredArgsConstructor;
@@ -102,6 +106,10 @@ public class DataAuditTask {
     private final SemesterService semesterService;
 
     private final DataAuditIssueMapper dataAuditIssueMapper;
+
+    private final ClassroomMapper classroomMapper;
+
+    private final TeacherMapper teacherMapper;
 
     private final ScheduleTaskLogUtil scheduleTaskLogUtil;
 
@@ -204,6 +212,23 @@ public class DataAuditTask {
                 context.appendError("教学班巡检失败，teachingClassId：" + each.getId() + "，" + ex.getMessage());
             }
         }
+        // 排课冲突描述需展示教室 / 教师名字而非 ID，预批量查询构建名称映射，避免双重循环内重复查库
+        Set<Long> conflictClassroomIds = new HashSet<>();
+        for (TeachingClassScheduleDO each : scheduleDOList) {
+            if (each.getClassroomId() != null) {
+                conflictClassroomIds.add(each.getClassroomId());
+            }
+        }
+        Map<Long, String> classroomNameMap = classroomMapper
+                .listClassroomByIds(new ArrayList<>(conflictClassroomIds)).stream()
+                .collect(Collectors.toMap(ClassroomDO::getId,
+                        each -> Objects.toString(each.getBuildingName(), "")
+                                + Objects.toString(each.getRoomNo(), ""),
+                        (a, b) -> a));
+        Set<Long> conflictTeacherIds = new HashSet<>(teacherIdMap.values());
+        Map<Long, String> teacherNameMap = teacherMapper
+                .listTeacherByIds(new ArrayList<>(conflictTeacherIds)).stream()
+                .collect(Collectors.toMap(TeacherDO::getId, TeacherDO::getTeacherName, (a, b) -> a));
         // 排课冲突：教师 / 教室两个维度，判定复用 T0 的 ScheduleConflictUtil
         for (int i = 0; i < scheduleDOList.size(); i++) {
             for (int j = i + 1; j < scheduleDOList.size(); j++) {
@@ -220,7 +245,8 @@ public class DataAuditTask {
                             && Objects.equals(source.getClassroomId(), target.getClassroomId())) {
                         issueList.add(buildIssue(RULE_SCHEDULE_CONFLICT, BIZ_TYPE_CLASSROOM, source.getClassroomId(),
                                 RiskLevelEnum.MEDIUM,
-                                "教室【" + source.getClassroomId() + "】在周"
+                                "教室【" + classroomNameMap.getOrDefault(source.getClassroomId(),
+                                        String.valueOf(source.getClassroomId())) + "】在周"
                                         + source.getWeekday() + " 第" + source.getStartSection()
                                         + "-" + source.getEndSection() + "节存在排课冲突"));
                     }
@@ -229,7 +255,8 @@ public class DataAuditTask {
                     if (Objects.nonNull(sourceTeacherId) && Objects.equals(sourceTeacherId, targetTeacherId)) {
                         issueList.add(buildIssue(RULE_SCHEDULE_CONFLICT, BIZ_TYPE_TEACHER, sourceTeacherId,
                                 RiskLevelEnum.MEDIUM,
-                                "教师【" + sourceTeacherId + "】在周" + source.getWeekday() + " 第"
+                                "教师【" + teacherNameMap.getOrDefault(sourceTeacherId,
+                                        String.valueOf(sourceTeacherId)) + "】在周" + source.getWeekday() + " 第"
                                         + source.getStartSection() + "-" + source.getEndSection()
                                         + "节存在排课冲突"));
                     }
