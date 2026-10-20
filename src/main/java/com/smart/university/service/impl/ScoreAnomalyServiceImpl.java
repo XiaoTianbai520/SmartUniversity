@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -86,9 +87,29 @@ public class ScoreAnomalyServiceImpl implements ScoreAnomalyService {
     private static final String ANOMALY_SCORE_TOO_HIGH = "SCORE_TOO_HIGH";
 
     /**
-     * 历史学期扫描上限
+     * 历史学期扫描绝对上限（安全护栏，不再作为主驱动）
      */
     private static final int SEMESTER_SCAN_LIMIT = 200;
+
+    /**
+     * 基线历史学期回看数量（仅取最近 N 个非当前学期）
+     */
+    private static final int BASELINE_LOOKBACK_SEMESTERS = 8;
+
+    /**
+     * 基线历史学期回看时间窗（年）
+     */
+    private static final int BASELINE_LOOKBACK_YEARS = 5;
+
+    /**
+     * 基线缓存 TTL（毫秒），10 分钟
+     */
+    private static final long BASELINE_CACHE_TTL_MILLIS = 10L * 60 * 1000;
+
+    /**
+     * 课程历史及格率基线内存缓存（学期 ID -> 基线数据），线程安全
+     */
+    private final Map<Long, BaselineCache> baselineCache = new ConcurrentHashMap<>();
 
     private final TeachingClassMapper teachingClassMapper;
     private final CourseSelectionMapper courseSelectionMapper;
@@ -237,7 +258,7 @@ public class ScoreAnomalyServiceImpl implements ScoreAnomalyService {
         }
         context.scoreMap = scoreMap;
         context.majorNameMap = buildMajorNameMap(selectedList);
-        context.baselineMap = buildBaselineMap(semesterId, context);
+        context.baselineMap = getBaselineMap(semesterId);
         context.schoolBaselinePassRate = calculateSchoolBaseline(context);
         return context;
     }
@@ -297,16 +318,21 @@ public class ScoreAnomalyServiceImpl implements ScoreAnomalyService {
      * @param context    统计上下文
      * @return 课程 ID 到基线及格率的映射
      */
-    private Map<Long, BigDecimal> buildBaselineMap(Long semesterId, AnomalyContext context) {
+    private Map<Long, BigDecimal> buildBaselineMap(Long semesterId) {
         SemesterPageQueryReqDTO requestParam = new SemesterPageQueryReqDTO();
         List<SemesterDO> semesterDOList = semesterMapper
                 .listSemesterByCondition(Page.of(1, SEMESTER_SCAN_LIMIT), requestParam)
                 .getRecords();
+        LocalDate baselineWindowStart = LocalDate.now().minusYears(BASELINE_LOOKBACK_YEARS);
+        List<SemesterDO> historySemesterList = semesterDOList.stream()
+                .filter(each -> !Objects.equals(each.getId(), semesterId))
+                .filter(each -> each.getEndDate() != null && !each.getEndDate().isBefore(baselineWindowStart))
+                .sorted(Comparator.comparing(SemesterDO::getEndDate,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(BASELINE_LOOKBACK_SEMESTERS)
+                .toList();
         Map<Long, List<BigDecimal>> coursePassRateMap = new HashMap<>();
-        for (SemesterDO each : semesterDOList) {
-            if (Objects.equals(each.getId(), semesterId)) {
-                continue;
-            }
+        for (SemesterDO each : historySemesterList) {
             List<CourseSelectionDO> historySelectionList =
                     listSemesterSelection(each.getId(), SelectionStatusEnum.SELECTED);
             if (historySelectionList.isEmpty()) {
@@ -346,6 +372,25 @@ public class ScoreAnomalyServiceImpl implements ScoreAnomalyService {
                     total.divide(BigDecimal.valueOf(entry.getValue().size()), 1, RoundingMode.HALF_UP));
         }
         return result;
+    }
+
+    /**
+     * 获取课程历史及格率基线，带内存 TTL 缓存
+     *
+     * <p>命中且未过期时直接返回缓存，否则重新计算并写入缓存，10 分钟内重复请求零数据库开销。
+     *
+     * @param semesterId 当前学期 ID
+     * @return 课程 ID 到基线及格率的映射
+     */
+    private Map<Long, BigDecimal> getBaselineMap(Long semesterId) {
+        BaselineCache cache = baselineCache.get(semesterId);
+        long now = System.currentTimeMillis();
+        if (cache != null && cache.expireAt > now) {
+            return cache.data;
+        }
+        Map<Long, BigDecimal> data = buildBaselineMap(semesterId);
+        baselineCache.put(semesterId, new BaselineCache(data, now + BASELINE_CACHE_TTL_MILLIS));
+        return data;
     }
 
     /**
@@ -622,6 +667,27 @@ public class ScoreAnomalyServiceImpl implements ScoreAnomalyService {
         int fromIndex = Math.min((currentPage - 1) * limit, source.size());
         int toIndex = Math.min(fromIndex + limit, source.size());
         return new ArrayList<>(source.subList(fromIndex, toIndex));
+    }
+
+    /**
+     * 基线缓存值，包含基线数据与过期时间戳
+     */
+    private static class BaselineCache {
+
+        /**
+         * 课程 ID 到基线及格率的映射
+         */
+        private final Map<Long, BigDecimal> data;
+
+        /**
+         * 过期时间戳（毫秒）
+         */
+        private final long expireAt;
+
+        BaselineCache(Map<Long, BigDecimal> data, long expireAt) {
+            this.data = data;
+            this.expireAt = expireAt;
+        }
     }
 
     /**
