@@ -33,6 +33,7 @@ import com.smart.university.mapper.SelectionBatchMapper;
 import com.smart.university.mapper.TeachingClassMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.smart.university.service.SelectionBatchService;
+import com.smart.university.service.SemesterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -71,6 +72,8 @@ public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper,
     private final NoticeEventPublisher noticeEventPublisher;
 
     private final NoticeTargetResolver noticeTargetResolver;
+
+    private final SemesterService semesterService;
 
     @Override
     public PageResult<SelectionBatchRespDTO> pageSelectionBatch(SelectionBatchPageQueryReqDTO requestParam) {
@@ -223,6 +226,13 @@ public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper,
         } catch (Exception ex) {
             log.error("批次-教学班移除通知发布失败，teachingClassId：{}", teachingClassId, ex);
         }
+    }
+
+    @Override
+    public SelectionBatchRespDTO getCurrentBatch() {
+        Long semesterId = semesterService.getCurrentSemester().getId();
+        SelectionBatchDO batchDO = selectionBatchMapper.getCurrentSelectionBatch(semesterId);
+        return batchDO == null ? null : convertToRespDTO(batchDO);
     }
 
     @Override

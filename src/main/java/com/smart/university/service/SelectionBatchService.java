@@ -33,6 +33,14 @@ public interface SelectionBatchService {
     SelectionBatchRespDTO getSelectionBatchDetail(Long batchId);
 
     /**
+     * 查询学生端当前选课批次概要
+     * <p>取当前学期处于选课时间内、状态为 IN_PROGRESS 的批次；无活跃批次时返回 null（不抛异常）。
+     *
+     * @return 选课批次出参，无活跃批次时返回 null
+     */
+    SelectionBatchRespDTO getCurrentBatch();
+
+    /**
      * 保存选课批次
      *
      * @param requestParam 批次入参
