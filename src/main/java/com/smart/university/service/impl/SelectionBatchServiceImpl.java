@@ -36,6 +36,7 @@ import com.smart.university.service.SemesterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,9 +73,10 @@ public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper,
     /**
      * 教学班出参转换复用 TeachingClassServiceImpl 的同一实现，保证批次教学班列表与
      * §16.2/§16.3 教学班列表返回结构一致（含 teacherName / schedules / majorIds / gradeIds）。
-     * 采用字段注入而非构造注入，避免与 TeachingClassServiceImpl（已注入 SelectionBatchService）形成构造循环依赖。
+     * 采用字段注入 + @Lazy，避免与 TeachingClassServiceImpl（构造注入 SelectionBatchService）形成初始化期循环依赖。
      */
     @Autowired
+    @Lazy
     private TeachingClassService teachingClassService;
 
     private final SemesterService semesterService;
