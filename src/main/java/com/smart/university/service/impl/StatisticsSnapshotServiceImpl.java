@@ -268,6 +268,12 @@ public class StatisticsSnapshotServiceImpl implements StatisticsSnapshotService 
         LocalDateTime startTime = LocalDateTime.now();
         int successCount = 0;
         int failCount = 0;
+        // M-06：管理员手动刷新必须先清理「今日」旧快照再重算，否则 readOrComputeList 命中当日快照直接返回，刷新变成空操作。
+        // 只删 stat_date = 今天 的行，保留历史日期快照。
+        LocalDate refreshDate = LocalDate.now();
+        for (StatTypeEnum each : targetStatTypes) {
+            removeTodaySnapshot(targetSemesterId, each, refreshDate);
+        }
         for (StatTypeEnum each : targetStatTypes) {
             try {
                 refreshSingleSnapshot(targetSemesterId, each);
@@ -289,6 +295,33 @@ public class StatisticsSnapshotServiceImpl implements StatisticsSnapshotService 
         result.setDurationMs(Duration.between(startTime, LocalDateTime.now()).toMillis());
         result.setGeneratedAt(LocalDateTime.now());
         return result;
+    }
+
+    /**
+     * 删除目标学期指定统计类型「今日」的快照行，供手动刷新强制重算使用。
+     *
+     * <p>M-06：只清理 stat_date = 刷新当日 的行，历史日期快照保持不动。
+     *
+     * @param semesterId 学期 ID
+     * @param statType   统计类型
+     * @param statDate   刷新日期
+     */
+    private void removeTodaySnapshot(Long semesterId, StatTypeEnum statType, LocalDate statDate) {
+        switch (statType) {
+            case CLASSROOM_USAGE ->
+                    statClassroomUsageMapper.removeStatClassroomUsageBySemesterAndDate(semesterId, statDate);
+            case TEACHER_WORKLOAD ->
+                    statTeacherWorkloadMapper.removeStatTeacherWorkloadBySemesterAndDate(semesterId, statDate);
+            case COURSE_SELECTION ->
+                    statCourseSelectionMapper.removeStatCourseSelectionBySemesterAndDate(semesterId, statDate);
+            case CREDIT_PROGRESS ->
+                    statCreditProgressMapper.removeStatCreditProgressBySemesterAndDate(semesterId, statDate);
+            case OVERVIEW ->
+                    statSemesterOverviewMapper.removeStatSemesterOverviewBySemesterAndDate(semesterId, statDate);
+            default -> {
+                // 无其它类型
+            }
+        }
     }
 
     /**

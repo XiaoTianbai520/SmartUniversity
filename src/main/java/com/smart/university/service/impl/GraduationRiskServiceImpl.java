@@ -20,6 +20,7 @@ import com.smart.university.domain.entity.StatCreditProgressDO;
 import com.smart.university.domain.enums.CourseTypeEnum;
 import com.smart.university.mapper.GradeCohortMapper;
 import com.smart.university.mapper.MajorMapper;
+import com.smart.university.mapper.SemesterMapper;
 import com.smart.university.mapper.StudentMapper;
 import com.smart.university.service.CreditProgressService;
 import com.smart.university.service.GraduationRiskService;
@@ -34,6 +35,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,6 +67,7 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
     private final SemesterService semesterService;
     private final StudentMapper studentMapper;
     private final GradeCohortMapper gradeCohortMapper;
+    private final SemesterMapper semesterMapper;
     private final MajorMapper majorMapper;
 
     /**
@@ -90,7 +93,7 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
         Long targetSemesterId = resolveSemesterId(semesterId);
         CreditProgressRespDTO creditProgress = creditProgressService
                 .getCreditProgressByStudentId(studentId, targetSemesterId);
-        int remainingSemesters = resolveRemainingSemesters(studentId);
+        int remainingSemesters = resolveRemainingSemesters(studentId, targetSemesterId);
         BigDecimal maxCreditPerSemester = resolveMaxCreditPerSemester(targetSemesterId);
         return buildRespDTO(studentId, targetSemesterId, creditProgress, remainingSemesters,
                 maxCreditPerSemester, false);
@@ -119,6 +122,12 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
                 ? Map.of()
                 : gradeCohortMapper.listGradeCohortByIds(gradeIds).stream()
                 .collect(Collectors.toMap(GradeCohortDO::getId, Function.identity(), (first, second) -> first));
+        // M-01：按年级预计算剩余学期数（每学期表实算），避免逐学生重复统计
+        Map<Long, Integer> remainingSemesterMap = new HashMap<>();
+        for (GradeCohortDO each : gradeMap.values()) {
+            remainingSemesterMap.put(each.getId(),
+                    resolveRemainingSemesters(each.getId(), each.getEntryYear(), targetSemesterId));
+        }
         List<GraduationRiskRespDTO> allRecords = new ArrayList<>();
         for (StatCreditProgressDO each : filteredSnapList) {
             Integer entryYear = null;
@@ -126,7 +135,10 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
             if (gradeCohortDO != null) {
                 entryYear = gradeCohortDO.getEntryYear();
             }
-            int remainingSemesters = resolveRemainingSemesters(each.getGradeId(), entryYear);
+            Integer cachedRemaining = each.getGradeId() == null ? null : remainingSemesterMap.get(each.getGradeId());
+            int remainingSemesters = cachedRemaining != null
+                    ? cachedRemaining
+                    : resolveRemainingSemesters(each.getGradeId(), entryYear, targetSemesterId);
             allRecords.add(buildRespDTOFromSnapshot(each, remainingSemesters, maxCreditPerSemester));
         }
         fillStudentInfo(allRecords, filteredSnapList);
@@ -421,12 +433,15 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
     }
 
     /**
-     * 计算剩余学期数：学制 − (当前学年 − 入学年份)，最小为 1
+     * 计算剩余学期数：按学期表实算已读学期数。
      *
-     * @param studentId 学生 ID
+     * <p>M-01：{@code 剩余学期数 = 学制 × 2 - 已读学期数 + 1}，最小为 1。
+     *
+     * @param studentId  学生 ID
+     * @param semesterId 统计截止学期 ID，为空时取当前生效学期
      * @return 剩余学期数
      */
-    private int resolveRemainingSemesters(Long studentId) {
+    private int resolveRemainingSemesters(Long studentId, Long semesterId) {
         StudentDO studentDO = studentMapper.getStudentById(studentId);
         Long gradeId = studentDO == null ? null : studentDO.getGradeId();
         Integer entryYear = null;
@@ -436,22 +451,56 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
                 entryYear = gradeCohortDO.getEntryYear();
             }
         }
-        return resolveRemainingSemesters(gradeId, entryYear);
+        return resolveRemainingSemesters(gradeId, entryYear, semesterId);
     }
 
     /**
-     * 计算剩余学期数：学制 − (当前学年 − 入学年份)，最小为 1
+     * 计算剩余学期数：按学期表实算已读学期数。
      *
-     * <p>供 {@link #pageGraduationRisk} 在批量已知年级入学年份时直接复用，避免逐学生回查。
+     * <p>M-01：{@code 剩余学期数 = 学制 × 2 - 已读学期数 + 1}，最小为 1。
+     * 供 {@link #pageGraduationRisk} 在批量已知年级入学年份时直接复用，避免逐学生回查。
      *
      * @param gradeId    年级 ID，可为 null
      * @param entryYear  入学年份，为空时按当前年份兜底
+     * @param semesterId 统计截止学期 ID，为空时取当前生效学期
      * @return 剩余学期数
      */
-    private int resolveRemainingSemesters(Long gradeId, Integer entryYear) {
+    private int resolveRemainingSemesters(Long gradeId, Integer entryYear, Long semesterId) {
         int entry = entryYear != null ? entryYear : LocalDate.now().getYear();
-        int remaining = defaultSchoolYears - (LocalDate.now().getYear() - entry);
-        return remaining < 1 ? 1 : remaining;
+        LocalDate entryStart = resolveEntrySemesterStart(entry);
+        LocalDate baseStart = resolveSemesterStart(semesterId);
+        LocalDate baseDate = baseStart == null ? LocalDate.now() : baseStart;
+        long passedTermCount = semesterMapper.countSemesterByStartDateBetween(entryStart, baseDate);
+        int remaining = defaultSchoolYears * 2 - (int) passedTermCount + 1;
+        return Math.max(remaining, 1);
+    }
+
+    /**
+     * 计算入学学期开始日期：按 entry_year 拼学年 + 第 1 学期查询学期表
+     *
+     * @param entryYear 入学年份
+     * @return 入学学期开始日期，查不到时兜底为当年 9 月 1 日
+     */
+    private LocalDate resolveEntrySemesterStart(int entryYear) {
+        SemesterDO entrySemester = semesterMapper.getSemesterByAcademicYearAndTerm(
+                entryYear + "-" + (entryYear + 1), 1);
+        if (entrySemester != null && entrySemester.getStartDate() != null) {
+            return entrySemester.getStartDate();
+        }
+        return LocalDate.of(entryYear, 9, 1);
+    }
+
+    /**
+     * 取学期开始日期，semesterId 为空时取当前生效学期
+     *
+     * @param semesterId 学期 ID
+     * @return 学期开始日期，取不到时返回 null
+     */
+    private LocalDate resolveSemesterStart(Long semesterId) {
+        SemesterDO semesterDO = semesterId == null
+                ? semesterService.getCurrentSemester()
+                : semesterService.getSemesterById(semesterId);
+        return semesterDO == null ? null : semesterDO.getStartDate();
     }
 
     /**

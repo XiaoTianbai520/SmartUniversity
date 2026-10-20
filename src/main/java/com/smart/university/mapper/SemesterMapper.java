@@ -11,6 +11,8 @@ import com.smart.university.domain.entity.SemesterDO;
 import com.smart.university.domain.enums.SemesterStatusEnum;
 import com.smart.university.domain.enums.SemesterStatusEnum;
 
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -39,6 +41,49 @@ public interface SemesterMapper extends BaseMapper<SemesterDO> {
                 .eq(SemesterDO::getStatus, SemesterStatusEnum.ACTIVE)
                 .orderByDesc(SemesterDO::getStartDate)
                 .last("LIMIT 1"));
+    }
+
+    /**
+     * 按学年 + 学期序号查询学期，用于定位入学学期
+     *
+     * @param academicYear 学年，例如 2026-2027
+     * @param termNo       学期序号 1/2
+     * @return 学期信息，不存在时返回 null
+     */
+    default SemesterDO getSemesterByAcademicYearAndTerm(String academicYear, Integer termNo) {
+        return selectOne(Wrappers.<SemesterDO>lambdaQuery()
+                .eq(SemesterDO::getAcademicYear, academicYear)
+                .eq(SemesterDO::getTermNo, termNo)
+                .orderByAsc(SemesterDO::getStartDate)
+                .last("LIMIT 1"));
+    }
+
+    /**
+     * 统计开学日期落在指定闭区间内的学期数量（按学期表实算已读学期数）
+     *
+     * @param startDate 起始日期（含）
+     * @param endDate   结束日期（含）
+     * @return 学期数量
+     */
+    default long countSemesterByStartDateBetween(LocalDate startDate, LocalDate endDate) {
+        return selectCount(Wrappers.<SemesterDO>lambdaQuery()
+                .ge(SemesterDO::getStartDate, startDate)
+                .le(SemesterDO::getStartDate, endDate));
+    }
+
+    /**
+     * 按 ID 集合批量查询学期
+     *
+     * @param semesterIds 学期 ID 集合
+     * @return 学期集合
+     */
+    default List<SemesterDO> listSemesterByIds(Collection<Long> semesterIds) {
+        if (semesterIds == null || semesterIds.isEmpty()) {
+            return List.of();
+        }
+        return selectList(Wrappers.<SemesterDO>lambdaQuery()
+                .in(SemesterDO::getId, semesterIds)
+                .orderByAsc(SemesterDO::getStartDate));
     }
 
     /**

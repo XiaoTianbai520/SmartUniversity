@@ -59,6 +59,20 @@ public interface DataAuditIssueMapper extends BaseMapper<DataAuditIssueDO> {
     }
 
     /**
+     * 删除指定学期的全部巡检结果。
+     *
+     * <p>R-02：唯一键已去掉 stat_date 维度（rule_code, biz_type, biz_id），
+     * 因此每轮巡检前必须按学期全量清理历史问题行，否则次日巡检会与前一天的行撞唯一键而全部落库失败。
+     *
+     * @param semesterId 学期 ID
+     * @return 影响行数
+     */
+    default int removeDataAuditIssueBySemester(Long semesterId) {
+        return delete(Wrappers.<DataAuditIssueDO>lambdaQuery()
+                .eq(DataAuditIssueDO::getSemesterId, semesterId));
+    }
+
+    /**
      * 删除指定学期指定巡检日期的结果，覆盖写前先清理当日旧数据
      *
      * @param semesterId 学期 ID

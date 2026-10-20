@@ -440,14 +440,18 @@ public class ScoreAnomalyServiceImpl implements ScoreAnomalyService {
                 context.schoolBaselinePassRate);
         BigDecimal deviation = passRate.subtract(baselinePassRate).setScale(1, RoundingMode.HALF_UP);
         List<String> anomalyTypes = new ArrayList<>();
-        if (passRate.compareTo(baselinePassRate.subtract(BigDecimal.valueOf(passRateDeviation))) < 0) {
-            anomalyTypes.add(ANOMALY_FAIL_RATE_HIGH);
+        // M-02：零成绩班（scoredCount=0）分母为 0 会把及格率/优秀率算成 0%，
+        // 从而恒触发 FAIL_RATE_HIGH / SCORE_TOO_HIGH；此时跳过这两类判定，只保留 SCORE_MISSING
+        if (scoredCount > 0) {
+            if (passRate.compareTo(baselinePassRate.subtract(BigDecimal.valueOf(passRateDeviation))) < 0) {
+                anomalyTypes.add(ANOMALY_FAIL_RATE_HIGH);
+            }
+            if (excellentRate.compareTo(BigDecimal.valueOf(excellentRateThreshold)) > 0) {
+                anomalyTypes.add(ANOMALY_SCORE_TOO_HIGH);
+            }
         }
         if (context.publishWindowPassed && inputCompleteRate.compareTo(BigDecimal.valueOf(100)) < 0) {
             anomalyTypes.add(ANOMALY_SCORE_MISSING);
-        }
-        if (excellentRate.compareTo(BigDecimal.valueOf(excellentRateThreshold)) > 0) {
-            anomalyTypes.add(ANOMALY_SCORE_TOO_HIGH);
         }
         CourseDO courseDO = context.courseMap.get(teachingClassDO.getCourseId());
         TeacherDO teacherDO = context.teacherMap.get(teachingClassDO.getTeacherId());

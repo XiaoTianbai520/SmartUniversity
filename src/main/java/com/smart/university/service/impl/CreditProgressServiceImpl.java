@@ -19,6 +19,7 @@ import com.smart.university.mapper.CourseMapper;
 import com.smart.university.mapper.CourseSelectionMapper;
 import com.smart.university.mapper.GradeCohortMapper;
 import com.smart.university.mapper.ScoreMapper;
+import com.smart.university.mapper.SemesterMapper;
 import com.smart.university.mapper.StudentMapper;
 import com.smart.university.mapper.TeachingClassMapper;
 import com.smart.university.service.CreditProgressService;
@@ -33,6 +34,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,11 +46,11 @@ import java.util.stream.Collectors;
 /**
  * 学生学分进度服务实现（S-02）
  *
- * <p>C8 红线：本服务的学分一律为「跨学期累计」，只使用
- * {@code ScoreMapper#listPublishedScoreByStudentId} 与
- * {@code CourseSelectionMapper#listSelectionByStudentId} 两个无学期过滤的方法，
- * 禁止调用 V1.1 的 {@code CreditServiceImpl}、{@code ScoreMapper#listPublishedScoreByStudent}
- * 或任何带 semester_id 过滤的学分方法。
+ * <p>C8 红线：本服务的学分一律为「跨学期累计」。S-01 起累计增加学期上界：
+ * 只统计开课学期开始日期不晚于统计截止学期（{@code semesterId}，为空取当前生效学期）的已发布成绩。
+ * 仍使用 {@code ScoreMapper#listPublishedScoreByStudentId} 与
+ * {@code CourseSelectionMapper#listSelectionByStudentId} 两个按学生维度查询的方法，
+ * 不使用任何按学生逐学期 N+1 的查询。
  */
 @Service
 @RequiredArgsConstructor
@@ -65,6 +67,7 @@ public class CreditProgressServiceImpl implements CreditProgressService {
     private final CourseMapper courseMapper;
     private final StudentMapper studentMapper;
     private final GradeCohortMapper gradeCohortMapper;
+    private final SemesterMapper semesterMapper;
     private final SemesterService semesterService;
     private final TrainingPlanService trainingPlanService;
 
@@ -119,8 +122,10 @@ public class CreditProgressServiceImpl implements CreditProgressService {
         List<ScoreDO> publishedScoreDOList = scoreMapper.listPublishedScoreByStudentId(studentId);
         Map<Long, TeachingClassDO> teachingClassMap = buildTeachingClassMap(selectionMap, publishedScoreDOList);
         Map<Long, CourseDO> courseMap = buildCourseMap(teachingClassMap);
+        LocalDate targetSemesterStart = resolveSemesterStart(targetSemesterId);
+        Map<Long, LocalDate> semesterStartMap = buildSemesterStartMap(teachingClassMap);
         CreditAccumulator accumulator = accumulateCredit(selectionMap, teachingClassMap, courseMap,
-                publishedScoreDOList);
+                publishedScoreDOList, targetSemesterStart, semesterStartMap);
         TrainingPlanRespDTO trainingPlanRespDTO = getEnabledPlan(studentId);
         return buildRespDTO(targetSemesterId, accumulator, trainingPlanRespDTO);
     }
@@ -142,7 +147,7 @@ public class CreditProgressServiceImpl implements CreditProgressService {
         if (maxSelectionCredit.compareTo(BigDecimal.ZERO) <= 0) {
             return RiskLevelEnum.LOW;
         }
-        int remainingTermCount = resolveRemainingTermCount(studentId);
+        int remainingTermCount = resolveRemainingTermCount(studentId, semesterId);
         BigDecimal requiredRate = gapCredit.divide(BigDecimal.valueOf(remainingTermCount), 1, RoundingMode.HALF_UP);
         BigDecimal highThreshold = maxSelectionCredit.multiply(BigDecimal.valueOf(highRate));
         BigDecimal mediumThreshold = maxSelectionCredit.multiply(BigDecimal.valueOf(mediumRate));
@@ -204,12 +209,16 @@ public class CreditProgressServiceImpl implements CreditProgressService {
      * @param teachingClassMap      教学班映射
      * @param courseMap             课程映射
      * @param publishedScoreDOList  已发布成绩集合
+     * @param targetSemesterStart   统计截止学期开始日期，为空表示不限上界
+     * @param semesterStartMap      学期 ID 到开始日期的映射
      * @return 学分累计结果
      */
     private CreditAccumulator accumulateCredit(Map<Long, CourseSelectionDO> selectionMap,
                                                Map<Long, TeachingClassDO> teachingClassMap,
                                                Map<Long, CourseDO> courseMap,
-                                               List<ScoreDO> publishedScoreDOList) {
+                                               List<ScoreDO> publishedScoreDOList,
+                                               LocalDate targetSemesterStart,
+                                               Map<Long, LocalDate> semesterStartMap) {
         CreditAccumulator result = new CreditAccumulator();
         Set<Long> countedCourseIds = new HashSet<>();
         BigDecimal passScoreDecimal = BigDecimal.valueOf(passScore);
@@ -220,6 +229,12 @@ public class CreditProgressServiceImpl implements CreditProgressService {
             }
             TeachingClassDO teachingClassDO = teachingClassMap.get(selectionDO.getTeachingClassId());
             if (teachingClassDO == null) {
+                continue;
+            }
+            // S-01：只累计「开课学期开始日期 <= 统计截止学期开始日期」的成绩，实现按学期切片的累计
+            LocalDate scoreSemesterStart = semesterStartMap.get(teachingClassDO.getSemesterId());
+            if (targetSemesterStart != null && scoreSemesterStart != null
+                    && scoreSemesterStart.isAfter(targetSemesterStart)) {
                 continue;
             }
             CourseDO courseDO = courseMap.get(teachingClassDO.getCourseId());
@@ -366,22 +381,79 @@ public class CreditProgressServiceImpl implements CreditProgressService {
     }
 
     /**
-     * 计算剩余学期数，至少为 1
+     * 计算剩余学期数，至少为 1。
      *
-     * @param studentId 学生 ID
+     * <p>M-01：按学期表实算已读学期数，不再用「当前学年 - 入学年份」的年差近似。
+     * {@code 剩余学期数 = 学制 × 2 - 已读学期数 + 1}。
+     *
+     * @param studentId  学生 ID
+     * @param semesterId 统计截止学期 ID，为空时取当前生效学期
      * @return 剩余学期数
      */
-    private int resolveRemainingTermCount(Long studentId) {
-        StudentDO studentDO = studentMapper.getStudentById(studentId);
+    private int resolveRemainingTermCount(Long studentId, Long semesterId) {
         int entryYear = LocalDate.now().getYear();
+        StudentDO studentDO = studentMapper.getStudentById(studentId);
         if (studentDO != null && studentDO.getGradeId() != null) {
             GradeCohortDO gradeCohortDO = gradeCohortMapper.getGradeCohortById(studentDO.getGradeId());
             if (gradeCohortDO != null && gradeCohortDO.getEntryYear() != null) {
                 entryYear = gradeCohortDO.getEntryYear();
             }
         }
-        int remaining = defaultSchoolYears - (LocalDate.now().getYear() - entryYear);
-        return remaining < 1 ? 1 : remaining;
+        LocalDate entryStart = resolveEntrySemesterStart(entryYear);
+        LocalDate baseStart = resolveSemesterStart(semesterId);
+        LocalDate baseDate = baseStart == null ? LocalDate.now() : baseStart;
+        long passedTermCount = semesterMapper.countSemesterByStartDateBetween(entryStart, baseDate);
+        int remaining = defaultSchoolYears * 2 - (int) passedTermCount + 1;
+        return Math.max(remaining, 1);
+    }
+
+    /**
+     * 计算入学学期开始日期：按 grade_cohort.entry_year 拼学年 + 第 1 学期查询学期表
+     *
+     * @param entryYear 入学年份
+     * @return 入学学期开始日期，查不到时兜底为当年 9 月 1 日
+     */
+    private LocalDate resolveEntrySemesterStart(int entryYear) {
+        SemesterDO entrySemester = semesterMapper.getSemesterByAcademicYearAndTerm(
+                entryYear + "-" + (entryYear + 1), 1);
+        if (entrySemester != null && entrySemester.getStartDate() != null) {
+            return entrySemester.getStartDate();
+        }
+        return LocalDate.of(entryYear, 9, 1);
+    }
+
+    /**
+     * 取学期开始日期，semesterId 为空时取当前生效学期
+     *
+     * @param semesterId 学期 ID
+     * @return 学期开始日期，取不到时返回 null
+     */
+    private LocalDate resolveSemesterStart(Long semesterId) {
+        SemesterDO semesterDO = semesterId == null
+                ? semesterService.getCurrentSemester()
+                : semesterService.getSemesterById(semesterId);
+        return semesterDO == null ? null : semesterDO.getStartDate();
+    }
+
+    /**
+     * 批量构建教学班所属学期的开始日期映射，用于按学期切片累计
+     *
+     * @param teachingClassMap 教学班映射
+     * @return 学期 ID 到开始日期的映射
+     */
+    private Map<Long, LocalDate> buildSemesterStartMap(Map<Long, TeachingClassDO> teachingClassMap) {
+        List<Long> semesterIds = teachingClassMap.values().stream()
+                .map(TeachingClassDO::getSemesterId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, LocalDate> result = new HashMap<>();
+        for (SemesterDO each : semesterMapper.listSemesterByIds(semesterIds)) {
+            if (each.getStartDate() != null) {
+                result.put(each.getId(), each.getStartDate());
+            }
+        }
+        return result;
     }
 
     /**

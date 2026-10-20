@@ -33,9 +33,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -237,8 +239,16 @@ public class DataAuditTask {
                 }
             }
         }
-        dataAuditIssueMapper.removeDataAuditIssueBySemesterAndDate(semesterId, statDate);
+        // R-02：唯一键为 (rule_code, biz_type, biz_id)、不含 stat_date，清理必须按学期全量，
+        // 否则次日巡检的新结果会与前一天的历史行撞唯一键导致全部落库失败
+        dataAuditIssueMapper.removeDataAuditIssueBySemester(semesterId);
+        // M-03：唯一性口径为 (rule_code, biz_type, biz_id)，避免教室 ID 与教师 ID 撞号互相覆盖漏报
+        Set<String> savedKeys = new HashSet<>();
         for (DataAuditIssueDO each : issueList) {
+            String uniqueKey = each.getRuleCode() + "|" + each.getBizType() + "|" + each.getBizId();
+            if (!savedKeys.add(uniqueKey)) {
+                continue;
+            }
             each.setSemesterId(semesterId);
             each.setStatDate(statDate);
             try {
@@ -246,7 +256,8 @@ public class DataAuditTask {
                 context.addSuccessCount(1);
             } catch (Exception ex) {
                 context.addFailCount(1);
-                context.appendError("巡检结果落库失败，ruleCode：" + each.getRuleCode() + "，" + ex.getMessage());
+                context.appendError("巡检结果落库失败，ruleCode：" + each.getRuleCode() + "，bizType：" + each.getBizType()
+                        + "，bizId：" + each.getBizId() + "，" + ex.getMessage());
                 log.error("巡检结果落库失败", ex);
             }
         }
