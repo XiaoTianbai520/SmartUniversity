@@ -1,0 +1,230 @@
+@startuml M4-说明层类图
+' ============================================================
+' M4 选课与候补 —— 说明层类图（设计模型·静态）（大作业5）
+' 说明层：给出类型、可见性、方法签名与依赖方向
+' 与 05-详细交互图 必须同步；M2/M3/M5/M1 的类只作「外部引用」，不展开
+' ============================================================
+!pragma layout smetana
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F7F9FC
+  BorderColor #2F5597
+  ArrowColor #2F5597
+}
+skinparam stereotypeCBackgroundColor #E8EEF7
+hide circle
+
+package "controller.student" #FFFFFF {
+  class StudentSelectionController <<Controller>> {
+    - courseSelectionService : CourseSelectionService
+    + select(requestParam : CourseSelectReqDTO) : Result<CourseSelectionRespDTO>
+    + listMySelections(requestParam : SelectionQueryReqDTO) : Result<PageResult<CourseSelectionRespDTO>>
+    + withdraw(selectionId : Long) : Result<Void>
+  }
+  class StudentWaitlistController <<Controller>> {
+    - waitlistService : WaitlistService
+    + joinWaitlist(teachingClassId : Long) : Result<WaitlistRespDTO>
+    + cancelWaitlist(selectionId : Long) : Result<Void>
+    + listMyWaitlist() : Result<List<WaitlistRespDTO>>
+  }
+}
+
+package "controller.admin" #FFFFFF {
+  class SelectionBatchController <<Controller>> {
+    - selectionBatchService : SelectionBatchService
+    + createBatch(requestParam : SelectionBatchCreateReqDTO) : Result<Long>
+    + updateBatch(batchId : Long, requestParam : SelectionBatchUpdateReqDTO) : Result<Void>
+    + changeStatus(batchId : Long, status : String) : Result<Void>
+    + addClassesToBatch(batchId : Long, classIds : List<Long>) : Result<Integer>
+    + listBatchClasses(batchId : Long, requestParam : BatchClassQueryReqDTO) : Result<PageResult<TeachingClassListRespDTO>>
+  }
+  class AdminWaitlistController <<Controller>> {
+    - waitlistService : WaitlistService
+    + manualPromote(teachingClassId : Long) : Result<Integer>
+  }
+}
+
+package "service" #FFFFFF {
+  interface CourseSelectionService {
+    + listSelectableClasses(studentId : Long, requestParam : TeachingClassQueryReqDTO) : PageResult<TeachingClassListRespDTO>
+    + getTeachingClassDetail(teachingClassId : Long, studentId : Long) : TeachingClassDetailRespDTO
+    + selectCourse(student : StudentDO, teachingClassId : Long) : CourseSelectionRespDTO
+    + listMySelections(studentId : Long, requestParam : SelectionQueryReqDTO) : PageResult<CourseSelectionRespDTO>
+    + withdraw(studentId : Long, selectionId : Long) : void
+    + countSelected(teachingClassId : Long) : int
+    + calcSelectedCredit(studentId : Long, semesterId : Long) : BigDecimal
+  }
+  interface WaitlistService {
+    + joinWaitlist(studentId : Long, teachingClassId : Long) : WaitlistRespDTO
+    + cancelWaitlist(studentId : Long, selectionId : Long) : void
+    + listMyWaitlist(studentId : Long) : List<WaitlistRespDTO>
+    + tryPromote(teachingClassId : Long) : boolean
+    + manualPromote(teachingClassId : Long) : int
+  }
+  interface SelectionBatchService {
+    + getCurrentBatch(semesterId : Long) : SelectionBatchDO
+    + createBatch(requestParam : SelectionBatchCreateReqDTO) : Long
+    + updateBatch(batchId : Long, requestParam : SelectionBatchUpdateReqDTO) : void
+    + changeStatus(batchId : Long, status : String) : void
+    + addClassesToBatch(batchId : Long, classIds : List<Long>) : int
+    + removeClassFromBatch(batchId : Long, teachingClassId : Long) : void
+  }
+
+  class CourseSelectionServiceImpl <<ServiceImpl>> {
+    - courseSelectionMapper : CourseSelectionMapper
+    - selectionBatchService : SelectionBatchService
+    - waitlistService : WaitlistService
+    - redisKeyUtil : RedisKeyUtil
+    - checkSelectionRules(student : StudentDO, teachingClass : TeachingClassDO, batch : SelectionBatchDO) : void
+    - checkTimeConflict(studentId : Long, teachingClassId : Long) : void
+    - checkCreditLimit(studentId : Long, credit : BigDecimal, semesterId : Long) : void
+  }
+  class WaitlistServiceImpl <<ServiceImpl>> {
+    - courseSelectionMapper : CourseSelectionMapper
+    - courseSelectionService : CourseSelectionService
+    - noticeEventPublisher : NoticeEventPublisher
+    - nextWaitlistNo(teachingClassId : Long) : int
+    - promoteOne(record : CourseSelectionDO) : boolean
+  }
+  class SelectionBatchServiceImpl <<ServiceImpl>> {
+    - selectionBatchMapper : SelectionBatchMapper
+    - selectionBatchClassMapper : SelectionBatchClassMapper
+  }
+  CourseSelectionServiceImpl ..|> CourseSelectionService
+  WaitlistServiceImpl ..|> WaitlistService
+  SelectionBatchServiceImpl ..|> SelectionBatchService
+  WaitlistServiceImpl --> CourseSelectionService : 递补前重新校验
+}
+
+package "mapper" #FFFFFF {
+  interface CourseSelectionMapper <<Mapper>> {
+    + countSelected(teachingClassId : Long) : int
+    + listByStudentAndStatus(studentId : Long, status : String) : List<CourseSelectionDO>
+    + selectWaitlistHead(teachingClassId : Long) : CourseSelectionDO
+    + sumSelectedCredit(studentId : Long, semesterId : Long) : BigDecimal
+  }
+  interface SelectionBatchMapper <<Mapper>> {
+    + selectCurrentBatch(semesterId : Long) : SelectionBatchDO
+  }
+  interface SelectionBatchClassMapper <<Mapper>> {
+    + batchInsert(batchId : Long, classIds : List<Long>) : int
+  }
+}
+
+package "domain.entity" #FFFFFF {
+  class CourseSelectionDO <<DO>> {
+    - id : Long
+    - studentId : Long
+    - teachingClassId : Long
+    - batchId : Long
+    - status : String
+    - waitlistNo : Integer
+    - selectedAt : LocalDateTime
+    - promotedAt : LocalDateTime
+    - withdrawnAt : LocalDateTime
+  }
+  class SelectionBatchDO <<DO>> {
+    - id : Long
+    - batchName : String
+    - semesterId : Long
+    - startTime : LocalDateTime
+    - endTime : LocalDateTime
+    - dropDeadline : LocalDateTime
+    - status : String
+  }
+  class SelectionBatchClassDO <<DO>> {
+    - id : Long
+    - batchId : Long
+    - teachingClassId : Long
+  }
+}
+
+package "domain.enums" #FFFFFF {
+  enum SelectionStatusEnum <<Enum>> {
+    SELECTED : 已选
+    WAITING : 候补中
+    WITHDRAWN : 已退课
+  }
+  enum BatchStatusEnum <<Enum>> {
+    NOT_STARTED : 未开始
+    IN_PROGRESS : 进行中
+    ENDED : 已结束
+  }
+}
+
+package "domain.dto" #FFFFFF {
+  class CourseSelectReqDTO <<ReqDTO>> {
+    - teachingClassId : Long
+  }
+  class CourseSelectionRespDTO <<RespDTO>> {
+    - selectionId : Long
+    - teachingClassId : Long
+    - status : String
+    - selectedAt : LocalDateTime
+  }
+  class WaitlistRespDTO <<RespDTO>> {
+    - selectionId : Long
+    - teachingClassId : Long
+    - waitlistNo : Integer
+    - status : String
+  }
+}
+
+package "外部引用（其他模块负责，本模块只依赖）" #F2F2F2 {
+  class StudentDO <<M2>> {
+    + id / studentNo / name / majorId / gradeId
+  }
+  class TeachingClassDO <<M3>> {
+    + id / courseId / semesterId / teacherId / capacity / status
+  }
+  class CourseDO <<M3>> {
+    + id / credit / courseType
+  }
+  class NoticeEventPublisher <<M1>> {
+    + publish(event : NoticeEvent) : void
+  }
+  class RedisKeyUtil <<公共>> {
+    {static} + buildTeachingClassWaitlistNoKey(id : Long) : String
+  }
+}
+
+' ================= 依赖方向 =================
+StudentSelectionController --> CourseSelectionService
+StudentWaitlistController --> WaitlistService
+AdminWaitlistController --> WaitlistService
+SelectionBatchController --> SelectionBatchService
+CourseSelectionServiceImpl --> CourseSelectionMapper
+CourseSelectionServiceImpl --> SelectionBatchService
+CourseSelectionServiceImpl --> WaitlistService
+WaitlistServiceImpl --> CourseSelectionMapper
+WaitlistServiceImpl --> NoticeEventPublisher
+SelectionBatchServiceImpl --> SelectionBatchMapper
+SelectionBatchServiceImpl --> SelectionBatchClassMapper
+CourseSelectionMapper --> CourseSelectionDO
+SelectionBatchMapper --> SelectionBatchDO
+SelectionBatchClassMapper --> SelectionBatchClassDO
+CourseSelectionDO ..> SelectionStatusEnum
+SelectionBatchDO ..> BatchStatusEnum
+StudentSelectionController ..> CourseSelectReqDTO
+StudentSelectionController ..> CourseSelectionRespDTO
+StudentWaitlistController ..> WaitlistRespDTO
+CourseSelectionServiceImpl ..> TeachingClassDO
+CourseSelectionServiceImpl ..> StudentDO
+CourseSelectionServiceImpl ..> CourseDO
+CourseSelectionServiceImpl ..> RedisKeyUtil
+WaitlistServiceImpl ..> RedisKeyUtil
+
+note right of CourseSelectionServiceImpl
+  **责任分配（GRASP）**
+  · 专家原则：选课规则所需的全部数据都在选课服务手里 → 校验交给它
+  · 高内聚：13 步校验 + 状态流转集中在一个服务
+  · 低耦合：教学班/批次/学生数据通过对方 Service 或 Mapper 获取
+end note
+
+note bottom of WaitlistServiceImpl
+  递补**不做**独立规则集：
+  直接复用 CourseSelectionService 的全套校验
+  （老师要求的「分析模型 ↔ 设计模型同步」体现在这里）
+end note
+@enduml

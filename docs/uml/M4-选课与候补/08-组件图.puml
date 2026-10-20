@@ -1,0 +1,87 @@
+@startuml M4-组件图
+' ============================================================
+' M4 选课与候补 —— 组件图（大作业8）
+' 说明：组件图是**系统级**视图（平台命名规则中大作业8 也不含模块名），
+'       本图给出全系统组件骨架，并标注 M4 负责的组件（深色）。
+'       大作业10 汇总前，全组需先对齐组件边界。
+' ============================================================
+!pragma layout smetana
+skinparam shadowing false
+skinparam component {
+  BackgroundColor #F7F9FC
+  BorderColor #2F5597
+  ArrowColor #2F5597
+}
+skinparam packageStyle rectangle
+
+package "客户端" {
+  component "学生端页面\n(Vue/HTML)" as FEStudent
+  component "教师端页面" as FETeacher
+  component "教务端页面" as FEAdmin
+}
+
+package "接入层" {
+  component "Nginx 反向代理 / API 网关" as Gateway
+}
+
+package "M4 选课与候补组件（本模块负责）" #E8EEF7 {
+  component "选课接口组件\nStudentSelectionController" as C1
+  component "候补接口组件\nStudentWaitlistController\nAdminWaitlistController" as C2
+  component "批次管理接口组件\nSelectionBatchController" as C3
+  interface "选课 API" as I1
+  interface "候补 API" as I2
+  interface "批次管理 API" as I3
+
+  component "选课业务组件\nCourseSelectionService\n(13 步校验 / 状态流转)" as S1
+  component "候补业务组件\nWaitlistService\n(位次 / 递补)" as S2
+  component "批次业务组件\nSelectionBatchService" as S3
+  interface "选课校验服务" as I4
+
+  component "选课持久化组件\nCourseSelectionMapper\nSelectionBatchMapper" as P1
+}
+
+package "其他模块组件（外部依赖）" #F2F2F2 {
+  component "M1 认证与通知组件\n登录鉴权 / NoticeEvent 落库" as M1
+  component "M2 基础数据组件\n学生 / 教师 / 教室 / 学期" as M2
+  component "M3 教学班组件\nCourse / TeachingClass / Schedule" as M3
+  component "M5 成绩组件" as M5
+}
+
+component "Redis 缓存组件\n(名额预扣 / 候补位次)" as Redis
+database "MySQL 8\nedu_course_selection" as DB
+
+' ============ 装配关系 ============
+FEStudent --> Gateway
+FETeacher --> Gateway
+FEAdmin --> Gateway
+Gateway --> I1
+Gateway --> I2
+Gateway --> I3
+
+C1 -up- I1
+C2 -up- I2
+C3 -up- I3
+C1 --> S1
+C2 --> S2
+C3 --> S3
+S1 -down- I4
+S2 ..> I4 : 递补前重新校验
+S1 --> P1
+S2 --> P1
+P1 --> DB
+S1 --> Redis
+S2 --> Redis
+S1 ..> M3 : 教学班容量/时间/教师
+S1 ..> M2 : 学生专业/年级/学分
+S2 ..> M1 : 发布候补成功通知
+S3 ..> M2 : 学期
+S1 ..> M1 : 鉴权(@RequireRole)
+
+note bottom of S1
+  **组件边界原则**
+  M4 只暴露三个接口；
+  教学班、学生、成绩的数据能力
+  一律通过 M2/M3/M5 的组件获取，
+  不直接读对方的数据表。
+end note
+@enduml

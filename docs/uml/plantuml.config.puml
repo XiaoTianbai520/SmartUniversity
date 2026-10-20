@@ -1,0 +1,17 @@
+' ============================================================
+' PlantUML 全局渲染配置
+' 用法（命令行）：
+'   java -jar plantuml.jar -charset UTF-8 -tpng ^
+'        -configfile docs/uml/plantuml.config.puml ^
+'        -o export "docs/uml/M4-选课与候补/*.puml"
+' ============================================================
+' 中文字体：否则中文可能渲染成方块
+skinparam defaultFontName "Microsoft YaHei"
+skinparam defaultFontSize 13
+' 提高导出 PNG 清晰度，便于贴进 Word
+skinparam dpi 150
+' 统一视觉风格
+skinparam shadowing false
+skinparam ArrowColor #2F5597
+skinparam BorderColor #2F5597
+skinparam BackgroundColor #FFFFFF

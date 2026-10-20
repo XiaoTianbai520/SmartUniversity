@@ -1,0 +1,69 @@
+@startuml M4-详细交互图-协作图
+' ============================================================
+' M4 选课与候补 —— 详细交互图：协作图（大作业6）
+' 与 05-详细交互图-顺序图-选课并发.puml 严格等价：
+'   顺序图强调「消息的时间顺序」，协作图强调「对象之间的结构关系 + 消息编号」
+' 场景：高并发抢课 —— 缓存原子预扣名额 + 数据库唯一索引兜底
+'
+' ⚠ 工具说明：PlantUML 没有原生通信图/协作图图元，
+'   此处用「对象图 + 带序号的链」近似表达。
+'   Rational Rose 的协作图本身由顺序图自动生成；
+'   若需标准协作图，可用 draw.io / StarUML 依据本图重绘。
+' ============================================================
+skinparam shadowing false
+skinparam object {
+  BackgroundColor #F7F9FC
+  BorderColor #2F5597
+  ArrowColor #2F5597
+}
+skinparam noteBackgroundColor #FFF9E6
+skinparam noteBorderColor #D6B656
+
+object "学生 : 选课页面" as UI
+object "ctrl : StudentSelectionController" as Ctrl
+object "sel : CourseSelectionService" as Sel
+object "batchSvc : SelectionBatchService" as BatchSvc
+object "tcSvc : TeachingClassService" as TcSvc
+object "redis : Redis 缓存" as Redis
+object "mapper : CourseSelectionMapper" as Mapper
+object "db : MySQL" as DB
+
+' 消息编号与 05-详细交互图-顺序图-选课并发 一一对应
+UI     -- Ctrl     : 1: 选课(teachingClassId = 100)
+Ctrl   -- Sel      : 2: selectCourse(student, 100)
+Sel    -- BatchSvc : 3: getCurrentBatch(semesterId)
+Sel    -- TcSvc    : 4: getTeachingClass(100)
+Sel    -- Redis    : 5: EVAL 原子预扣名额（remaining > 0 ? DECR : 0）
+Sel    -- Mapper   : 6: insert(status = SELECTED)
+Mapper -- DB       : 7: INSERT course_selection（唯一索引兜底）
+Sel    -- Redis    : 8: [重复选课分支] INCR 归还预扣名额
+Sel    -- Sel      : 9: 13 项选课条件校验（自调用）
+Ctrl   -- UI       : 10: 结果（成功 / 40909 重复选课 / 40910 容量已满）
+
+note right of Sel
+  **责任分配（GRASP · 专家原则）**
+  13 项选课条件、名额判定、状态流转
+  全部由 CourseSelectionService 承担；
+  Controller 只做参数透传与结果包装，
+  不参与业务判断。
+end note
+
+note top of Redis
+  **第一道闸：名额预扣**
+  单条 EVAL 命令内完成「判断 + 扣减」，
+  避免「查—判断—扣减」三段竞态导致超卖。
+end note
+
+note bottom of DB
+  **第二道闸：唯一索引**
+  uk_selection_student_class(student_id, teaching_class_id)
+  保证并发下同一学生只会成功一次；
+  冲突时回滚并归还预扣名额。
+end note
+
+note bottom of Sel
+  **与顺序图的同步点**
+  本图消息编号 = 05-详细交互图-顺序图-选课并发 的步骤编号；
+  修改任一图时必须同步另一图（老师要求的三处同步之「说明层类图 ↔ 详细交互图」）。
+end note
+@enduml

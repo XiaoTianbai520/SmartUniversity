@@ -1,0 +1,51 @@
+@startuml M4-简单交互图-协作图
+' ============================================================
+' M4 选课与候补 —— 简单交互图：协作图（通信图）（大作业4）
+' 内容与 03-简单交互图-顺序图.puml 严格等价：
+'   顺序图强调「时间顺序」，协作图强调「对象之间的结构关系 + 消息编号」
+'
+' ⚠ 工具说明：PlantUML **没有**原生通信图/协作图图元，
+'   这里用「对象图 + 带序号的链」近似表达。
+'   若要交标准协作图，建议用 draw.io / StarUML 手工绘制
+'   （Rational Rose 的协作图本身就是由顺序图自动生成的）。
+' ============================================================
+skinparam shadowing false
+skinparam object {
+  BackgroundColor #F7F9FC
+  BorderColor #2F5597
+  ArrowColor #2F5597
+}
+skinparam noteBackgroundColor #FFF9E6
+skinparam noteBorderColor #D6B656
+
+object "学生 : 选课页面" as UI
+object "ctrl : StudentSelectionController" as Ctrl
+object "sel : CourseSelectionService" as Sel
+object "batchSvc : SelectionBatchService" as BatchSvc
+object "tcSvc : TeachingClassService" as TcSvc
+object "mapper : CourseSelectionMapper" as Mapper
+object "db : MySQL" as DB
+
+' 消息编号即顺序图中自上而下的调用次序
+UI      -- Ctrl     : 1: POST /student/selections(teachingClassId = 100)
+Ctrl    -- Sel      : 2: selectCourse(requestParam)
+Sel     -- BatchSvc : 3: getCurrentBatch(semesterId)
+Sel     -- TcSvc    : 4: getTeachingClass(teachingClassId)
+Sel     -- Mapper   : 5: 查询是否已有选课记录 / 已选课程列表
+Sel     -- Mapper   : 6: countSelected(teachingClassId)
+Sel     -- Mapper   : 7: insert(status = SELECTED)
+Mapper  -- DB       : 8: INSERT course_selection
+Ctrl    -- UI       : 9: Result.success(选课成功)
+
+note bottom of Sel
+  **责任分配（专家原则）**
+  选课条件校验、容量判断、状态流转
+  全部由 CourseSelectionService 承担；
+  Controller 只做参数透传与结果包装。
+end note
+
+note top of Mapper
+  一个 Mapper 承担 4 类查询：
+  是否存在记录 / 已选课程 / 已选人数 / 写入记录
+end note
+@enduml

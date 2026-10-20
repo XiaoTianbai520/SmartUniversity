@@ -1,0 +1,98 @@
+@startuml M4-详细交互图-顺序图-退课递补
+' ============================================================
+' M4 选课与候补 —— 详细交互图：顺序图（大作业6）
+' 场景：学生退课 → 释放名额 → 候补队列自动递补（含递补失败重试下一位）
+' 与 04-说明层类图 / 07-活动图-退课与候补递补 同步
+' ============================================================
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #2F5597
+  LifeLineBorderColor #2F5597
+  ParticipantBorderColor #2F5597
+  ParticipantBackgroundColor #F7F9FC
+}
+autonumber "<b>[00]"
+
+actor "学生" as Student
+participant "StudentSelectionController" as Ctrl
+participant "CourseSelectionService" as Sel
+participant "WaitlistService" as Wait
+participant "Redis" as Redis
+participant "CourseSelectionMapper" as Mapper
+database "MySQL" as DB
+participant "NoticeEventPublisher\n(M1 通知中心)" as Notice
+
+Student -> Ctrl : 退课(selectionId = 5001)
+activate Ctrl
+Ctrl -> Sel : withdraw(studentId, 5001)
+activate Sel
+
+group 退课校验与状态流转
+  Sel -> Mapper : selectById(5001)
+  activate Mapper
+  Mapper --> Sel : 记录(status = SELECTED, 归属本人)
+  deactivate Mapper
+  Sel -> Sel : 校验处于允许退课时间(drop_deadline 之前)
+  Sel -> DB : BEGIN
+  Sel -> Mapper : update(status = WITHDRAWN, withdrawn_at = now)
+  activate Mapper
+  Mapper -> DB : UPDATE course_selection
+  Mapper --> Sel : 1 行
+  deactivate Mapper
+  Sel -> Redis : INCR 归还名额
+  Sel -> DB : COMMIT
+end
+
+Sel -> Wait : tryPromote(teachingClassId = 100)
+activate Wait
+note right of Wait
+  触发时机：**退课释放名额** 或 **教务上调容量**
+end note
+
+loop 候补队列（最多尝试到队尾）
+  Wait -> Mapper : selectWaitlistHead(100)
+  activate Mapper
+  Mapper --> Wait : 候补记录(status = WAITING, waitlist_no 最小)
+  deactivate Mapper
+
+  alt 队列为空
+    Wait --> Sel : false（无需递补）
+  else 存在候补记录
+    Wait -> Sel : 重新执行全套选课校验（专业/年级/冲突/学分/容量）
+    note right of Wait
+      **老师要求的同步点**：递补不是「直接上位」，
+      必须重跑 13 步校验，否则会把不合规学生顶进教学班
+    end note
+
+    alt 校验通过
+      Wait -> DB : BEGIN
+      Wait -> Mapper : update(status = SELECTED, promoted_at = now)
+      activate Mapper
+      Mapper -> DB : UPDATE course_selection
+      Mapper --> Wait : 1 行
+      deactivate Mapper
+      Wait -> Redis : DECR 占用名额
+      Wait -> DB : COMMIT
+      Wait -> Notice : publish(NoticeEvent\nnoticeType = WAITLIST_PROMOTED\nbizId = 选课记录 ID)
+      activate Notice
+      Notice --> Wait : 已受理（幂等落库由 uk_notice_dedup 保证）
+      deactivate Notice
+      Wait --> Sel : true（递补成功）
+    else 校验失败（如已超学分上限）
+      Wait -> Mapper : update(status = WITHDRAWN)（该条候补失效）
+      activate Mapper
+      Mapper --> Wait : 1 行
+      deactivate Mapper
+      note right of Wait
+        继续尝试**下一位**候补，
+        失败个体不阻塞整个队列
+      end note
+    end
+  end
+end
+
+deactivate Wait
+Sel --> Ctrl : 退课成功（已尝试递补）
+deactivate Sel
+Ctrl --> Student : 提示「退课成功」
+@enduml

@@ -1,0 +1,63 @@
+@startuml M4-部署图
+' ============================================================
+' M4 选课与候补 —— 部署图（大作业8）
+' 说明：部署图为**系统级**视图，本图给出节点与制品的物理分布，
+'       并标注 M4 制品的落点。大作业10 汇总前全组需统一节点命名。
+' ============================================================
+!pragma layout smetana
+skinparam shadowing false
+skinparam node {
+  BackgroundColor #F7F9FC
+  BorderColor #2F5597
+}
+skinparam artifact {
+  BackgroundColor #E8EEF7
+  BorderColor #2F5597
+}
+skinparam database {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+}
+
+node "用户终端\n(学生 / 教师 / 教务)" as Client {
+  artifact "浏览器\n学生端 / 教师端 / 教务端页面" as Browser
+}
+
+node "接入层节点" as NginxNode {
+  artifact "Nginx\n反向代理 + 静态资源 + 负载均衡" as Nginx
+}
+
+node "应用服务器节点（可水平扩展 x N）" as AppNode {
+  artifact "Spring Boot 应用\n«选课与候补制品»\nStudentSelectionController\nStudentWaitlistController\nSelectionBatchController\nCourseSelectionService\nWaitlistService\nSelectionBatchService" as App
+  artifact "Spring Boot 应用\n«其他模块制品»\nM1 认证通知 / M2 基础数据\nM3 教学班 / M5 成绩" as AppOther
+}
+
+node "缓存服务器节点" as RedisNode {
+  database "Redis 7\n名额预扣 Lua 脚本\n候补位次计数\n会话与热点缓存" as Redis
+}
+
+node "数据库服务器节点" as DBServer {
+  database "MySQL 8 主库\nedu_course_selection" as DB1
+  database "MySQL 8 从库\n(读写分离/备份)" as DB2
+}
+
+' ============ 通信关系 ============
+Browser -- Nginx : HTTPS / 443
+Nginx -- App : HTTP 反向代理
+App -- Redis : RESP / 6379\n原子预扣与计数
+App -- DB1 : JDBC / 3306\n选课与候补读写
+DB1 ..> DB2 : 主从复制
+
+note right of App
+  **部署要点**
+  · 选课与候补制品与其它模块制品同进程部署（模块化单体）
+  · 应用节点无状态，会话与名额计数放 Redis
+  · 防超卖依赖「Redis 原子预扣 + 数据库唯一索引」双保险
+end note
+
+note bottom of Redis
+  单点故障时降级为
+  「仅数据库唯一索引兜底」，
+  仍不会超卖，但并发吞吐下降
+end note
+@enduml

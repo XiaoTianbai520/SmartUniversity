@@ -1,0 +1,79 @@
+@startuml M4-简单交互图-顺序图
+' ============================================================
+' M4 选课与候补 —— 简单交互图：顺序图（大作业4）
+' 对应的用例：UC03 选课（**基本路径**，不含并发与缓存细节）
+' 该图是「说明层类图」责任分配的依据：概念层类图 ↔ 本图必须同步
+' ============================================================
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #2F5597
+  LifeLineBorderColor #2F5597
+  ParticipantBorderColor #2F5597
+  ParticipantBackgroundColor #F7F9FC
+  GroupBorderColor #7F7F7F
+}
+autonumber "<b>[00]"
+
+actor "学生" as Student
+participant "选课页面" as UI
+participant "StudentSelectionController" as Ctrl
+participant "CourseSelectionService" as Sel
+participant "SelectionBatchService" as BatchSvc
+participant "TeachingClassService" as TcSvc
+participant "CourseSelectionMapper" as Mapper
+database "MySQL" as DB
+
+Student -> UI : 点击「选课」(teachingClassId = 100)
+UI -> Ctrl : POST /api/v1/student/selections
+activate Ctrl
+note right of Ctrl
+  **不接收前端传的 studentId / batchId**
+  统一从 UserContextHolder 取当前登录身份
+end note
+
+Ctrl -> Sel : selectCourse(requestParam)
+activate Sel
+
+group 批次与教学班校验（第 4~6 步）
+  Sel -> BatchSvc : getCurrentBatch(semesterId)
+  activate BatchSvc
+  BatchSvc --> Sel : 选课批次（进行中，且在时间窗内）
+  deactivate BatchSvc
+  Sel -> TcSvc : getTeachingClass(teachingClassId)
+  activate TcSvc
+  TcSvc --> Sel : 教学班（capacity、status、适用专业/年级）
+  deactivate TcSvc
+end
+
+group 学生选课权限与规则校验（第 7~11 步）
+  Sel -> Sel : 校验专业符合
+  Sel -> Sel : 校验年级符合
+  Sel -> Mapper : 查询是否已有选课记录
+  activate Mapper
+  Mapper --> Sel : 无记录（第 9 步通过）
+  deactivate Mapper
+  Sel -> Mapper : 查询本学期已选课程（判时间冲突、算学分）
+  activate Mapper
+  Mapper --> Sel : 已选课程列表（时间不冲突、学分未超上限）
+  deactivate Mapper
+end
+
+group 容量校验与写库（第 12~13 步）
+  Sel -> Mapper : countSelected(teachingClassId)
+  activate Mapper
+  Mapper --> Sel : 已选人数 59 < capacity 60
+  deactivate Mapper
+  Sel -> Mapper : insert(选课记录 status = SELECTED)
+  activate Mapper
+  Mapper -> DB : INSERT course_selection
+  DB --> Mapper : 受影响行数 1
+  Mapper --> Sel : selectionId = 5001
+  deactivate Mapper
+end
+
+Sel --> Ctrl : CourseSelectionRespDTO(selectionId, status = SELECTED)
+deactivate Sel
+Ctrl --> UI : Result.success(选课成功)
+deactivate Ctrl
+UI --> Student : 提示「选课成功」并刷新已选列表
+@enduml

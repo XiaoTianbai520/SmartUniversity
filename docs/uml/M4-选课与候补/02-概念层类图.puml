@@ -1,0 +1,102 @@
+@startuml M4-概念层类图
+' ============================================================
+' M4 选课与候补 —— 概念层类图（大作业3）
+' 概念层：只表达业务概念、属性名与关系，不写类型/可见性/方法
+' ============================================================
+!pragma layout smetana
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #F7F9FC
+  BorderColor #2F5597
+  ArrowColor #2F5597
+}
+hide methods
+hide circle
+
+class "学生" as Student {
+  学号
+  姓名
+  所属专业
+  所属年级
+  班级
+}
+
+class "学期" as Semester {
+  学期编码
+  学期名称
+  开始日期
+  结束日期
+}
+
+class "选课批次" as Batch {
+  批次名称
+  选课开始时间
+  选课结束时间
+  退课截止时间
+  批次状态
+}
+
+class "教学班" as TeachingClass {
+  教学班编号
+  教学班名称
+  任课教师
+  最大容量
+  教学班状态
+  适用专业
+  适用年级
+}
+
+class "课程" as Course {
+  课程编号
+  课程名称
+  课程学分
+  课程性质
+  默认容量
+}
+
+class "教学班排课" as Schedule {
+  星期
+  开始节次
+  结束节次
+  开始周
+  结束周
+  上课教室
+}
+
+class "选课记录" as Selection {
+  选课状态
+  候补序号
+  选课时间
+  递补时间
+  退课时间
+  所属批次
+}
+
+' ================= 关联与多重性 =================
+Semester "1" -- "0..*" Batch : 包含 >
+Batch "0..*" -- "1..*" TeachingClass : 开放选课 >
+TeachingClass "0..*" -- "1" Course : 对应 >
+TeachingClass "1" -- "0..*" Schedule : 安排 >
+Student "1" -- "0..*" Selection : 发起 >
+TeachingClass "1" -- "0..*" Selection : 被选 >
+Batch "1" -- "0..*" Selection : 归属 >
+
+note top of Selection
+  **一条记录贯穿三种状态**
+  同一「学生 + 教学班」最多一条记录
+  （status = SELECTED / WAITING / WITHDRAWN）
+  候补与正式选课**复用同一实体**
+end note
+
+note bottom of TeachingClass
+  **容量校验依据**：status = SELECTED 的记录数
+  **候补人数**：status = WAITING 的记录数
+end note
+
+note bottom of Batch
+  批次状态：未开始 / 进行中 / 已结束
+  只有「进行中」且当前时间落在
+  [选课开始时间, 选课结束时间] 内才允许选课
+end note
+@enduml

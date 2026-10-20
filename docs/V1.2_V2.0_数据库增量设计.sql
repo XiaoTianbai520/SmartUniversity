@@ -489,7 +489,7 @@ CREATE TABLE IF NOT EXISTS `data_audit_issue` (
         ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
 
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_audit_issue` (`rule_code`, `biz_id`),
+    UNIQUE KEY `uk_audit_issue` (`rule_code`, `biz_type`, `biz_id`),
     KEY `idx_audit_issue_semester` (`semester_id`),
     KEY `idx_audit_issue_severity` (`severity`),
     KEY `idx_audit_issue_rule` (`rule_code`),

@@ -1,0 +1,112 @@
+@startuml M4-活动图-选课校验链
+' ============================================================
+' M4 选课与候补 —— 活动图（大作业7）
+' 场景：学生选课 —— 13 步校验链（含泳道）
+' 泳道顺序对应接口文档 §6.3「后端校验顺序」与 §6.5 错误码
+' ============================================================
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor #F7F9FC
+  BorderColor #2F5597
+  ArrowColor #2F5597
+  DiamondBackgroundColor #FFF9E6
+  DiamondBorderColor #D6B656
+}
+skinparam swimlane {
+  BorderColor #2F5597
+  TitleBackgroundColor #E8EEF7
+}
+
+|学生|
+start
+:进入课程详情页\n点击「选课」;
+
+|选课控制器|
+:从 UserContextHolder 取当前登录身份\n（不信任前端传来的 studentId / batchId）;
+
+|选课服务|
+if (第 1 步：当前用户是学生?) then (否)
+  |选课控制器|
+  :返回 403 无权限;
+  stop
+else (是)
+endif
+
+|选课服务|
+if (第 2~3 步：教学班存在且属于当前学期?) then (否)
+  |选课控制器|
+  :返回「教学班不存在」;
+  stop
+else (是)
+endif
+
+|批次服务|
+if (第 4~6 步：存在进行中的选课批次\n且该教学班在批次内、状态允许选课?) then (否)
+  |选课控制器|
+  :返回 40912 当前不在选课时间;
+  stop
+else (是)
+endif
+
+|选课服务|
+if (第 7 步：学生专业符合?) then (否)
+  |选课控制器|
+  :返回 40914 专业不符合选课条件;
+  stop
+else (是)
+endif
+
+|选课服务|
+if (第 8 步：学生年级符合?) then (否)
+  |选课控制器|
+  :返回 40915 年级不符合选课条件;
+  stop
+else (是)
+endif
+
+|选课服务|
+if (第 9 步：是否已选过该教学班?) then (是)
+  |选课控制器|
+  :返回 40909 重复选课;
+  stop
+else (否)
+endif
+
+|选课服务|
+if (第 10 步：与已选课程时间冲突?) then (是)
+  |选课控制器|
+  :返回 40908 学生课程时间冲突;
+  stop
+else (否)
+endif
+
+|选课服务|
+if (第 11 步：已选学分 + 本课程学分\n是否超过学期上限?) then (是)
+  |选课控制器|
+  :返回 40911 超过最大学分限制;
+  stop
+else (否)
+endif
+
+|选课服务|
+if (第 12 步：教学班容量是否已满?) then (是)
+  |选课控制器|
+  :返回 40910 课程容量已满\n并提示「是否加入候补」;
+  note right
+    学生选择「加入候补」后
+    进入 UC06 加入候补流程
+  end note
+  stop
+else (否)
+endif
+
+|选课服务|
+:第 13 步：创建 / 恢复选课记录\nstatus = SELECTED;
+|数据库|
+:INSERT / UPDATE course_selection\n（唯一索引兜底，事务提交）;
+|选课控制器|
+:返回选课成功\n(selectionId, status = SELECTED);
+|学生|
+:页面提示「选课成功」并刷新已选列表;
+stop
+@enduml

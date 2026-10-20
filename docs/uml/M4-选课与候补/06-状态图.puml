@@ -1,0 +1,55 @@
+@startuml M4-状态图-选课记录
+' ============================================================
+' M4 选课与候补 —— 状态图（大作业7）
+' 约束：状态图**只能有一个对象** → 本图对象 = 「选课记录 CourseSelection」
+' 关键设计：同一「学生 + 教学班」只存在一条记录
+'           （uk_selection_student_class 唯一索引），
+'           候补与正式选课复用同一条记录，状态原地流转，不物理删除。
+' ============================================================
+!pragma layout smetana
+hide empty description
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #F7F9FC
+  BorderColor #2F5597
+  ArrowColor #2F5597
+  StartColor #2F5597
+  EndColor #2F5597
+}
+
+state "无记录\n（该生未选该教学班）" as None
+state "已选 SELECTED\nselectedAt 有值" as Selected
+state "候补中 WAITING\nwaitlistNo 有值 / promotedAt 为空" as Waiting
+state "已退课 WITHDRAWN\nwithdrawnAt 有值" as Withdrawn
+
+[*] --> None : 学生尚未选课
+
+None --> Selected : 选课成功\n[ 容量未满 且 13 步校验全部通过 ] / 写入 selectedAt
+None --> Waiting  : 加入候补\n[ 容量已满 且 满足候补条件 ] / 分配 waitlistNo（班内递增）
+
+Selected --> Withdrawn : 退课\n[ 在退课截止时间之前 ] / 写入 withdrawnAt\n并触发候补递补
+Waiting  --> Withdrawn : 取消候补 / 保留 waitlistNo（不清零）
+
+Waiting  --> Selected : 自动递补成功\n[ 名额释放 且 重新执行全套校验通过 ] / 写入 promotedAt\n并发送候补成功通知
+
+Withdrawn --> Selected : 重新选课成功\n[ 再次满足全部选课条件 ] / 覆盖 selectedAt
+Withdrawn --> Waiting  : 重新加入候补\n[ 再次满员 ]
+
+note right of Selected
+  **并发防线**
+  即使 Redis 预扣成功，
+  唯一索引 uk_selection_student_class
+  仍能保证不会出现第二条 SELECTED
+end note
+
+note bottom of Waiting
+  **候补位次实时计算**
+  按 (teaching_class_id, status = WAITING, waitlist_no)
+  排序取位次；有人取消后其余人位次自动前移
+end note
+
+note bottom of Withdrawn
+  记录**不删除**：退课/取消候补只改状态，
+  保留历史，便于选课统计与成绩模块继续使用该记录
+end note
+@enduml

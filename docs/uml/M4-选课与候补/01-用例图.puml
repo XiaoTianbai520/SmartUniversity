@@ -1,0 +1,73 @@
+@startuml M4-用例图
+' ============================================================
+' 高校智慧教务选课平台 —— M4 选课与候补 用例图
+' 大作业2 交付物；负责人：苏俊毅 04241618
+' 渲染：plantuml 01-用例图.puml  （需 GraphViz，或保留下面的 smetana 布局）
+' ============================================================
+!pragma layout smetana
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F7F9FC
+  BorderColor #2F5597
+  ArrowColor #2F5597
+}
+
+actor "学生" as Student
+actor "教务管理员" as Admin
+
+rectangle "选课与候补子系统" {
+
+  usecase "查询可选课程"        as UC01
+  usecase "查看课程详情"        as UC02
+  usecase "选课"                as UC03
+  usecase "校验选课条件"        as UC04
+  usecase "退课"                as UC05
+  usecase "加入候补"            as UC06
+  usecase "查看候补位次"        as UC07
+  usecase "取消候补"            as UC08
+  usecase "查看我的课程"        as UC09
+  usecase "自动递补候补队列"    as UC10
+  usecase "发送候补成功通知"    as UC11
+
+  usecase "维护选课批次"        as UC20
+  usecase "开启/提前关闭选课"   as UC21
+  usecase "维护批次开放教学班"  as UC22
+  usecase "手动触发候补递补"    as UC23
+  usecase "查看选课进度统计"    as UC24
+}
+
+Student --> UC01
+Student --> UC02
+Student --> UC03
+Student --> UC05
+Student --> UC06
+Student --> UC07
+Student --> UC08
+Student --> UC09
+
+Admin --> UC20
+Admin --> UC21
+Admin --> UC22
+Admin --> UC23
+Admin --> UC24
+
+' ---- include / extend 关系 ----
+UC03 ..> UC04 : <<include>>
+UC06 ..> UC04 : <<include>>
+UC05 ..> UC10 : <<include>>
+UC10 ..> UC04 : <<include>>
+UC10 ..> UC11 : <<include>>
+
+UC06 .> UC03 : <<extend>>\n【容量已满】
+
+note right of UC04
+  **校验选课条件（共 13 步，见活动图）**
+  1 是否为学生 → 2 教学班存在 → 3 属于当前学期
+  4 存在有效批次 → 5 属于当前批次 → 6 状态允许选课
+  7 专业符合 → 8 年级符合 → 9 是否已选
+  10 时间冲突 → 11 学分上限 → 12 容量 → 13 写入/恢复记录
+end note
+@enduml

@@ -1,0 +1,95 @@
+@startuml M4-详细交互图-顺序图-选课并发
+' ============================================================
+' M4 选课与候补 —— 详细交互图：顺序图（大作业6）
+' 场景：高并发抢课 —— Redis 原子预扣名额 + 数据库唯一索引兜底
+' 与 04-说明层类图 同步；含事务边界与失败回滚路径
+' ============================================================
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #2F5597
+  LifeLineBorderColor #2F5597
+  ParticipantBorderColor #2F5597
+  ParticipantBackgroundColor #F7F9FC
+}
+autonumber "<b>[00]"
+
+actor "学生" as Student
+participant "StudentSelectionController" as Ctrl
+participant "CourseSelectionService" as Sel
+participant "SelectionBatchService" as BatchSvc
+participant "TeachingClassService" as TcSvc
+participant "Redis" as Redis
+participant "CourseSelectionMapper" as Mapper
+database "MySQL" as DB
+
+Student -> Ctrl : 选课(teachingClassId = 100)
+activate Ctrl
+Ctrl -> Sel : selectCourse(student, 100)
+activate Sel
+
+Sel -> BatchSvc : getCurrentBatch(semesterId)
+activate BatchSvc
+BatchSvc --> Sel : 批次(IN_PROGRESS, 时间窗内)
+deactivate BatchSvc
+Sel -> TcSvc : getTeachingClass(100)
+activate TcSvc
+TcSvc --> Sel : 教学班(capacity = 60, AVAILABLE)
+deactivate TcSvc
+
+group 规则校验（第 7~11 步，与简单交互图一致，此处折叠）
+  Sel -> Sel : 专业 / 年级 / 重复 / 时间冲突 / 学分上限
+end
+
+group 名额预扣：Redis 原子操作（防超卖第一道闸）
+  Sel -> Redis : EVAL lua 脚本
+  note right of Redis
+    **单命令原子**：
+    if remaining > 0 then
+       DECR teaching-class:remaining:%s
+       return 1
+    else return 0 end
+    避免「查—判断—扣减」三段竞态
+  end note
+  Redis --> Sel : 1（预扣成功）/ 0（已满）
+end
+
+alt 预扣成功
+  group 数据库事务（防超卖第二道闸）
+    Sel -> DB : BEGIN
+    Sel -> Mapper : insert(status = SELECTED)
+    activate Mapper
+    Mapper -> DB : INSERT course_selection
+    note right of DB
+      **唯一索引兜底**：
+      uk_selection_student_class(student_id, teaching_class_id)
+      并发下同一学生只会成功一次
+    end note
+    DB --> Mapper : 1 行
+    Mapper --> Sel : selectionId = 5001
+    deactivate Mapper
+    Sel -> DB : COMMIT
+    Sel --> Ctrl : 选课成功(status = SELECTED)
+  end
+
+  group 异常：唯一索引冲突（DuplicateKeyException）
+    DB --> Sel : 40909 重复选课
+    Sel -> Redis : INCR 归还预扣名额
+    Sel -> DB : ROLLBACK
+    Sel --> Ctrl : BizException(40909)
+  end
+else 预扣失败（容量已满）
+  Sel -> Mapper : countSelected(100)
+  activate Mapper
+  Mapper --> Sel : 60（= capacity）
+  deactivate Mapper
+  Sel --> Ctrl : BizException(40910 课程容量已满)
+  note right of Sel
+    前端据此提示「是否加入候补」
+    → 进入 UC06 加入候补
+  end note
+end
+
+Ctrl --> Student : 结果（成功 / 40909 / 40910）
+deactivate Sel
+deactivate Ctrl
+@enduml

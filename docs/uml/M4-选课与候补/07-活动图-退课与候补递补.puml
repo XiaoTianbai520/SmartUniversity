@@ -1,0 +1,76 @@
+@startuml M4-活动图-退课与候补递补
+' ============================================================
+' M4 选课与候补 —— 活动图（大作业7）
+' 场景：学生退课 → 释放名额 → 候补队列自动递补（含失败换下一位）
+' 按老师要求：活动图**按泳道画**
+' ============================================================
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor #F7F9FC
+  BorderColor #2F5597
+  ArrowColor #2F5597
+  DiamondBackgroundColor #FFF9E6
+  DiamondBorderColor #D6B656
+}
+skinparam swimlane {
+  BorderColor #2F5597
+  TitleBackgroundColor #E8EEF7
+}
+
+|学生|
+start
+:在「我的课程」中点击「退课」;
+
+|选课服务|
+:读取选课记录并校验归属本人;
+if (处于允许退课时间\n(未超过 drop_deadline)?) then (否)
+  :返回「已过退课截止时间」;
+  stop
+else (是)
+endif
+
+|数据库|
+:UPDATE course_selection\nstatus = WITHDRAWN, withdrawn_at = now\n（事务提交）;
+
+|缓存|
+:INCR 归还该教学班名额;
+
+|候补服务|
+:查询该教学班候补队列首位\n(status = WAITING 且 waitlist_no 最小);
+
+repeat
+  if (候补队列为空?) then (是)
+    :本次无需递补，结束;
+    stop
+  else (否)
+  endif
+
+  |候补服务|
+  :取出队首候补记录;
+
+  |选课服务|
+  :**重新执行全套选课校验**\n（批次时间 / 专业 / 年级 / 重复 / 时间冲突 / 学分 / 容量）;
+
+  if (校验通过?) then (是)
+    |数据库|
+    :UPDATE 该记录\nstatus = SELECTED, promoted_at = now\n（事务提交）;
+    |缓存|
+    :DECR 占用刚释放的名额;
+    |通知服务|
+    :发布 NoticeEvent\n(WAITLIST_PROMOTED, bizId = 选课记录ID)\n幂等落库，学生收到「候补成功」通知;
+    |候补服务|
+    :递补成功，结束;
+    stop
+  else (否)
+    |数据库|
+    :该条候补置为失效\nstatus = WITHDRAWN;
+    |候补服务|
+    :准备尝试**下一位**候补;
+  endif
+repeat while (队列中还有候补学生?) is (是) -> 取队首
+-> (否)
+
+|候补服务|
+:队列已空，本次退课不产生递补;
+stop
+@enduml
