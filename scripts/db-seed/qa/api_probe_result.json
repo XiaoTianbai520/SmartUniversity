@@ -1,0 +1,986 @@
+[
+  {
+    "name": "login-admin",
+    "http": 200,
+    "token_ok": true
+  },
+  {
+    "name": "login-student-20260001",
+    "http": 200,
+    "token_ok": true
+  },
+  {
+    "name": "login-teacher-T10005",
+    "http": 200,
+    "token_ok": true
+  },
+  {
+    "name": "login-teacher-T10001",
+    "http": 200,
+    "token_ok": true
+  },
+  {
+    "name": "1 看板概览",
+    "path": "/api/v1/admin/dashboard/overview?semesterId=5",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "obj keys=semesterId,semesterCode,studentCount,selectedStudentCount,courseCount,teachingClassCount,teacherCount,selectionCount,waitlistCount,withdrawCount,fullClassRate,classroomUsageRate,avgTeacherWorkload,avgCreditProgressRate",
+    "sample": {
+      "semesterId": 5,
+      "semesterCode": "2026-2027-1",
+      "studentCount": 2000,
+      "selectedStudentCount": 2000,
+      "courseCount": 164,
+      "teachingClassCount": 370,
+      "teacherCount": 154,
+      "selectionCount": 12756,
+      "waitlistCount": 350,
+      "withdrawCount": 1939
+    },
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"semesterId\":5,\"semesterCode\":\"2026-2027-1\",\"studentCount\":2000,\"selectedStudentCount\":2000,\"courseCount\":164,\"teachingClassCount\":370,\"teacherCount\":154,\"selectionCount\":12756,\"waitlistCount\":350,\"withdrawCount\":1939,\"fullClassRate\":15.70,\"classroomUsageRate\":39.30,\"avgTeacherWorkload\":152.90,\"avgCreditProgressRate\":0.00,\"unpublishedClassCount\":315,\"batchStatus\":\"IN_PROGRESS\",\"snapshotTime\":\"2026-10-20T16:54:12\",\"fromSnapshot\":true},\"timestamp\":1792488124627,\"success\":true}"
+  },
+  {
+    "name": "2 毕业风险名单",
+    "path": "/api/v1/admin/analytics/graduation-risks?semesterId=5&page=1&pageSize=20",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=20; total=2000",
+    "sample": [
+      {
+        "semesterId": 5,
+        "studentId": 189,
+        "studentNo": "20260049",
+        "studentName": "廖艳",
+        "majorName": "计算机科学与技术",
+        "gradeName": "2026级",
+        "hasPlan": true,
+        "message": "",
+        "riskLevel": "HIGH",
+        "riskReason": "按当前进度，剩余学期需每学期修满 34.6 学分，达到学期上限的 115%",
+        "completedCredit": 11.8,
+        "passedCredit": 11.8,
+        "planTotalCredit": 150.0,
+        "progressRate": 7.9,
+        "remainingCredit": 138.2,
+        "remainingSemesters": 4,
+        "requiredCreditPerSemester": 34.6,
+        "maxCreditPerSemester": 30.0,
+        "requiredRate": 1.15,
+        "gaps": [
+          {
+            "courseType": "REQUIRED",
+            "courseTypeName": "必修课",
+            "gapCredit": 79.5
+          },
+          {
+            "courseType": "MAJOR_ELECTIVE",
+            "courseTypeName": "专业选修课",
+            "gapCredit": 42.0
+          },
+          {
+            "courseType": "PUBLIC_ELECTIVE",
+            "courseTypeName": "公共选修课",
+            "gapCredit": 16.7
+          }
+        ]
+      },
+      {
+        "semesterId": 5,
+        "studentId": 146,
+        "studentNo": "20260037",
+        "studentName": "郑澜",
+        "majorName": "网络空间安全",
+        "gradeName": "2026级",
+        "hasPlan": true,
+        "message": "",
+        "riskLevel": "HIGH",
+        "riskReason": "按当前进度，剩余学期需每学期修满 35.7 学分，达到学期上限的 119%",
+        "completedCredit": 12.1,
+        "passedCredit": 12.1,
+        "planTotalCredit": 155.0,
+        "progressRate": 7.8,
+        "remainingCredit": 142.9,
+        "remainingSemesters": 4,
+        "requiredCreditPerSemester": 35.7,
+        "maxCreditPerSemester": 30.0,
+        "requiredRate": 1.19,
+        "gaps": [
+          {
+            "courseType": "REQUIRED",
+            "courseTypeName": "必修课",
+            "gapCredit": 84.5
+          },
+          {
+            "courseType": "MAJOR_ELECTIVE",
+            "courseTypeName": "专业选修课",
+            "gapCredit": 42.5
+          },
+          {
+            "courseType": "PUBLIC_ELECTIVE",
+            "courseTypeName": "公共选修课",
+            "gapCredit": 15.9
+          }
+        ]
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"records\":[{\"semesterId\":5,\"studentId\":189,\"studentNo\":\"20260049\",\"studentName\":\"廖艳\",\"majorName\":\"计算机科学与技术\",\"gradeName\":\"2026级\",\"hasPlan\":true,\"message\":\"\",\"riskLevel\":\"HIGH\",\"riskReason\":\"按当前进度，剩余学期需每学期修满 34.6 学分，达到学期上限的 115%\",\"completedCredit\":11.8,\"passedCredit\":11.8,\"planTotalCredit\":150.0,\"progressRate\":7.90,\"remainingCredit\":138.2,\"remainingSemesters\":4,\"requiredCreditPerSemester\":34.6,\"maxCreditPerSemester\":30.0,\"requiredRate\":1.15,\"gaps\":[{\"courseType\":\"REQUIRED\",\"courseTypeName\":\"必修课\",\"gapCredit\":79.5},{\"courseType\":\"MAJOR_ELECTIVE\",\"courseTypeName\":\"专业选修课\",\"gapCredit\":42.0},{\"courseType\":\"PUBLIC_ELECTIVE\",\"courseTypeName\":\"公共选修课\",\"gapCredit\":16.7}]},{\"semesterId\":5,\"studentId\":146,\"studentNo\":\"20260037\",\"studentName\":\"郑澜\",\"majorName\":\"网络空间安全\",\"gradeName\":\"2026级\",\"hasPlan\":true,\"message\":\"\",\"riskLevel\":\"HIGH\",\"riskReason\":\"按当前进度，剩余学期需每学期修满 35.7 学分，达到学期上限的 119%\",\"completedCredit\":12.1,\"passedCredit\":12.1,\"planTotalCredit\":155.0,\"progressRate\":7.80,\"remainingCredit\":142.9,\"remainingSemesters\":4,\"requiredCreditPerSemester\":35.7,\"maxCreditPerSemester\":30.0,\"requiredRate\":1.19,\"gaps\":[{\"courseType\":\"REQUIRED\",\"courseTypeName\":\"必修课\",\"gapCr...<truncated>"
+  },
+  {
+    "name": "3 选课热度预测",
+    "path": "/api/v1/admin/analytics/enrollment-forecast?semesterId=5",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=20; total=None",
+    "sample": [
+      {
+        "courseId": 162,
+        "courseCode": "GE018",
+        "courseName": "逻辑思维",
+        "teachingClassCount": 3,
+        "currentCapacity": 450,
+        "selectedCount": 450,
+        "waitingCount": 10,
+        "historyAvgSelected": 132.4,
+        "historySampleCount": 8,
+        "sampleInsufficient": false,
+        "forecastDemand": 552,
+        "suggestedCapacityIncrement": 102,
+        "fullRisk": true,
+        "reason": "历史同期均值 132.4 人，本期已选 450 + 候补 10，按扩容系数 1.2 预测需求 552 人"
+      },
+      {
+        "courseId": 163,
+        "courseCode": "GE019",
+        "courseName": "数字素养",
+        "teachingClassCount": 3,
+        "currentCapacity": 360,
+        "selectedCount": 360,
+        "waitingCount": 22,
+        "historyAvgSelected": 84.5,
+        "historySampleCount": 8,
+        "sampleInsufficient": false,
+        "forecastDemand": 458,
+        "suggestedCapacityIncrement": 98,
+        "fullRisk": true,
+        "reason": "历史同期均值 84.5 人，本期已选 360 + 候补 22，按扩容系数 1.2 预测需求 458 人"
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"semesterId\":5,\"records\":[{\"courseId\":162,\"courseCode\":\"GE018\",\"courseName\":\"逻辑思维\",\"teachingClassCount\":3,\"currentCapacity\":450,\"selectedCount\":450,\"waitingCount\":10,\"historyAvgSelected\":132.4,\"historySampleCount\":8,\"sampleInsufficient\":false,\"forecastDemand\":552,\"suggestedCapacityIncrement\":102,\"fullRisk\":true,\"reason\":\"历史同期均值 132.4 人，本期已选 450 + 候补 10，按扩容系数 1.2 预测需求 552 人\"},{\"courseId\":163,\"courseCode\":\"GE019\",\"courseName\":\"数字素养\",\"teachingClassCount\":3,\"currentCapacity\":360,\"selectedCount\":360,\"waitingCount\":22,\"historyAvgSelected\":84.5,\"historySampleCount\":8,\"sampleInsufficient\":false,\"forecastDemand\":458,\"suggestedCapacityIncrement\":98,\"fullRisk\":true,\"reason\":\"历史同期均值 84.5 人，本期已选 360 + 候补 22，按扩容系数 1.2 预测需求 458 人\"},{\"courseId\":160,\"courseCode\":\"GE016\",\"courseName\":\"经济学通识\",\"teachingClassCount\":3,\"currentCapacity\":360,\"selectedCount\":360,\"waitingCount\":20,\"historyAvgSelected\":95.6,\"historySampleCount\":8,\"sampleInsufficient\":false,\"forecastDemand\":456,\"suggestedCapacityIncrement\":96,\"fullRisk\":true,\"reason\":\"历史同期均值 95.6 人，本期已选 360 + 候补 20，按扩容系数 1.2 预测需求 456 人\"},{\"courseId\":151,\"courseCode\":\"GE007\",\"courseName\":\"军事理论\",\"teachingClassCount\":3,\"cu...<truncated>"
+  },
+  {
+    "name": "4 成绩异常班级",
+    "path": "/api/v1/admin/analytics/score-anomalies?semesterId=5&page=1&pageSize=20",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=20; total=106",
+    "sample": [
+      {
+        "teachingClassId": 739,
+        "classCode": "2026-2027-1-CS200-03",
+        "courseName": "计算机科学与技术计算机导论",
+        "teacherName": "贺骏明",
+        "majorName": "英语",
+        "selectedCount": 54,
+        "scoredCount": 54,
+        "inputCompleteRate": 100.0,
+        "passRate": 9.3,
+        "excellentRate": 0.0,
+        "baselinePassRate": 99.7,
+        "deviation": -90.4,
+        "anomalyTypes": [
+          "FAIL_RATE_HIGH"
+        ],
+        "anomalyReason": "及格率低于同课程历史基线 90.4 个百分点（基线 99.7）",
+        "distribution": [
+          {
+            "segment": "0-59",
+            "count": 49
+          },
+          {
+            "segment": "60-69",
+            "count": 5
+          },
+          {
+            "segment": "70-79",
+            "count": 0
+          },
+          {
+            "segment": "80-84",
+            "count": 0
+          },
+          {
+            "segment": "85-100",
+            "count": 0
+          }
+        ]
+      },
+      {
+        "teachingClassId": 746,
+        "classCode": "2026-2027-1-CS203-02",
+        "courseName": "计算机科学与技术计算机组成原理",
+        "teacherName": "贺锦",
+        "majorName": "计算机科学与技术",
+        "selectedCount": 18,
+        "scoredCount": 18,
+        "inputCompleteRate": 100.0,
+        "passRate": 100.0,
+        "excellentRate": 88.9,
+        "baselinePassRate": 100.0,
+        "deviation": 0.0,
+        "anomalyTypes": [
+          "SCORE_TOO_HIGH"
+        ],
+        "anomalyReason": "优秀率高于阈值 60%",
+        "distribution": [
+          {
+            "segment": "0-59",
+            "count": 0
+          },
+          {
+            "segment": "60-69",
+            "count": 0
+          },
+          {
+            "segment": "70-79",
+            "count": 1
+          },
+          {
+            "segment": "80-84",
+            "count": 1
+          },
+          {
+            "segment": "85-100",
+            "count": 16
+          }
+        ]
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"records\":[{\"teachingClassId\":739,\"classCode\":\"2026-2027-1-CS200-03\",\"courseName\":\"计算机科学与技术计算机导论\",\"teacherName\":\"贺骏明\",\"majorName\":\"英语\",\"selectedCount\":54,\"scoredCount\":54,\"inputCompleteRate\":100.0,\"passRate\":9.3,\"excellentRate\":0.0,\"baselinePassRate\":99.7,\"deviation\":-90.4,\"anomalyTypes\":[\"FAIL_RATE_HIGH\"],\"anomalyReason\":\"及格率低于同课程历史基线 90.4 个百分点（基线 99.7）\",\"distribution\":[{\"segment\":\"0-59\",\"count\":49},{\"segment\":\"60-69\",\"count\":5},{\"segment\":\"70-79\",\"count\":0},{\"segment\":\"80-84\",\"count\":0},{\"segment\":\"85-100\",\"count\":0}]},{\"teachingClassId\":746,\"classCode\":\"2026-2027-1-CS203-02\",\"courseName\":\"计算机科学与技术计算机组成原理\",\"teacherName\":\"贺锦\",\"majorName\":\"计算机科学与技术\",\"selectedCount\":18,\"scoredCount\":18,\"inputCompleteRate\":100.0,\"passRate\":100.0,\"excellentRate\":88.9,\"baselinePassRate\":100.0,\"deviation\":0.0,\"anomalyTypes\":[\"SCORE_TOO_HIGH\"],\"anomalyReason\":\"优秀率高于阈值 60%\",\"distribution\":[{\"segment\":\"0-59\",\"count\":0},{\"segment\":\"60-69\",\"count\":0},{\"segment\":\"70-79\",\"count\":1},{\"segment\":\"80-84\",\"count\":1},{\"segment\":\"85-100\",\"count\":16}]},{\"teachingClassId\":749,\"classCode\":\"2026-2027-1-CS205-02\",\"courseName\":\"计算机科学与技术计算机网络\",\"teacherName\":\"赵敏\",\"majorName\":\"计算机科学与技术\"...<truncated>"
+  },
+  {
+    "name": "5a 教室推荐(无参)",
+    "path": "/api/v1/admin/analytics/classroom-recommendations",
+    "http": 200,
+    "code": 40405,
+    "message": "教学班不存在",
+    "count": "data=null",
+    "sample": null,
+    "ok": false,
+    "raw_head": "{\"code\":40405,\"message\":\"教学班不存在\",\"timestamp\":1792488132934,\"success\":false}"
+  },
+  {
+    "name": "5b 教室推荐(按教学班 738)",
+    "path": "/api/v1/admin/analytics/classroom-recommendations?teachingClassId=738&topN=5",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=5; total=None",
+    "sample": [
+      {
+        "classroomId": 4,
+        "buildingName": "第一教学楼",
+        "roomNo": "A04",
+        "capacity": 50,
+        "capacityMargin": 0,
+        "reason": "容量冗余最小（0 个座位），与目标教学班同处第一教学楼，未指定目标时段，未做冲突校验"
+      },
+      {
+        "classroomId": 14,
+        "buildingName": "第二教学楼",
+        "roomNo": "B04",
+        "capacity": 50,
+        "capacityMargin": 0,
+        "reason": "容量冗余最小（0 个座位），未指定目标时段，未做冲突校验"
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"teachingClassId\":738,\"requiredCapacity\":50,\"records\":[{\"classroomId\":4,\"buildingName\":\"第一教学楼\",\"roomNo\":\"A04\",\"capacity\":50,\"capacityMargin\":0,\"reason\":\"容量冗余最小（0 个座位），与目标教学班同处第一教学楼，未指定目标时段，未做冲突校验\"},{\"classroomId\":14,\"buildingName\":\"第二教学楼\",\"roomNo\":\"B04\",\"capacity\":50,\"capacityMargin\":0,\"reason\":\"容量冗余最小（0 个座位），未指定目标时段，未做冲突校验\"},{\"classroomId\":18,\"buildingName\":\"第二教学楼\",\"roomNo\":\"B08\",\"capacity\":50,\"capacityMargin\":0,\"reason\":\"容量冗余最小（0 个座位），未指定目标时段，未做冲突校验\"},{\"classroomId\":32,\"buildingName\":\"第三教学楼\",\"roomNo\":\"D02\",\"capacity\":50,\"capacityMargin\":0,\"reason\":\"容量冗余最小（0 个座位），未指定目标时段，未做冲突校验\"},{\"classroomId\":39,\"buildingName\":\"实验楼\",\"roomNo\":\"D09\",\"capacity\":50,\"capacityMargin\":0,\"reason\":\"容量冗余最小（0 个座位），未指定目标时段，未做冲突校验\"}]},\"timestamp\":1792488132960,\"success\":true}"
+  },
+  {
+    "name": "5c 教室推荐(按时段)",
+    "path": "/api/v1/admin/analytics/classroom-recommendations?weekday=3&startSection=5&endSection=6&startWeek=1&endWeek=16&topN=5",
+    "http": 200,
+    "code": 40405,
+    "message": "教学班不存在",
+    "count": "data=null",
+    "sample": null,
+    "ok": false,
+    "raw_head": "{\"code\":40405,\"message\":\"教学班不存在\",\"timestamp\":1792488132999,\"success\":false}"
+  },
+  {
+    "name": "6 教室利用率",
+    "path": "/api/v1/admin/statistics/classroom-usage?semesterId=5&page=1&pageSize=100",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=60; total=60",
+    "sample": [
+      {
+        "classroomId": 49,
+        "buildingName": "图书馆报告厅",
+        "roomNo": "E09",
+        "capacity": 150,
+        "usageCount": 22,
+        "usageHours": 704,
+        "totalHours": 1000,
+        "usageRate": 70.4
+      },
+      {
+        "classroomId": 52,
+        "buildingName": "图书馆报告厅",
+        "roomNo": "A02",
+        "capacity": 100,
+        "usageCount": 22,
+        "usageHours": 704,
+        "totalHours": 1000,
+        "usageRate": 70.4
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"records\":[{\"classroomId\":49,\"buildingName\":\"图书馆报告厅\",\"roomNo\":\"E09\",\"capacity\":150,\"usageCount\":22,\"usageHours\":704,\"totalHours\":1000,\"usageRate\":70.4},{\"classroomId\":52,\"buildingName\":\"图书馆报告厅\",\"roomNo\":\"A02\",\"capacity\":100,\"usageCount\":22,\"usageHours\":704,\"totalHours\":1000,\"usageRate\":70.4},{\"classroomId\":40,\"buildingName\":\"实验楼\",\"roomNo\":\"D10\",\"capacity\":50,\"usageCount\":20,\"usageHours\":640,\"totalHours\":1000,\"usageRate\":64.0},{\"classroomId\":44,\"buildingName\":\"实验楼\",\"roomNo\":\"E04\",\"capacity\":150,\"usageCount\":20,\"usageHours\":640,\"totalHours\":1000,\"usageRate\":64.0},{\"classroomId\":58,\"buildingName\":\"图书馆报告厅\",\"roomNo\":\"A08\",\"capacity\":200,\"usageCount\":20,\"usageHours\":640,\"totalHours\":1000,\"usageRate\":64.0},{\"classroomId\":12,\"buildingName\":\"第一教学楼\",\"roomNo\":\"B02\",\"capacity\":120,\"usageCount\":19,\"usageHours\":608,\"totalHours\":1000,\"usageRate\":60.8},{\"classroomId\":10,\"buildingName\":\"第一教学楼\",\"roomNo\":\"A10\",\"capacity\":100,\"usageCount\":18,\"usageHours\":576,\"totalHours\":1000,\"usageRate\":57.6},{\"classroomId\":25,\"buildingName\":\"第三教学楼\",\"roomNo\":\"C05\",\"capacity\":120,\"usageCount\":18,\"usageHours\":576,\"totalHours\":1000,\"usageRate\":57.6},{\"classroomId\":28,\"buildingName...<truncated>"
+  },
+  {
+    "name": "7 教师工作量",
+    "path": "/api/v1/admin/statistics/teacher-workload?semesterId=5&page=1&pageSize=20",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=20; total=154",
+    "sample": [
+      {
+        "teacherId": 4,
+        "teacherNo": "T10004",
+        "teacherName": "马文煦",
+        "classCount": 6,
+        "totalHours": 384,
+        "studentCount": 209
+      },
+      {
+        "teacherId": 27,
+        "teacherNo": "T10027",
+        "teacherName": "刘晨",
+        "classCount": 6,
+        "totalHours": 384,
+        "studentCount": 105
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"records\":[{\"teacherId\":4,\"teacherNo\":\"T10004\",\"teacherName\":\"马文煦\",\"classCount\":6,\"totalHours\":384,\"studentCount\":209},{\"teacherId\":27,\"teacherNo\":\"T10027\",\"teacherName\":\"刘晨\",\"classCount\":6,\"totalHours\":384,\"studentCount\":105},{\"teacherId\":90,\"teacherNo\":\"T10090\",\"teacherName\":\"薛煦雪\",\"classCount\":6,\"totalHours\":384,\"studentCount\":190},{\"teacherId\":137,\"teacherNo\":\"T10137\",\"teacherName\":\"白浩\",\"classCount\":6,\"totalHours\":384,\"studentCount\":195},{\"teacherId\":5,\"teacherNo\":\"T10005\",\"teacherName\":\"韩睿超\",\"classCount\":5,\"totalHours\":320,\"studentCount\":74},{\"teacherId\":6,\"teacherNo\":\"T10006\",\"teacherName\":\"邹欣\",\"classCount\":5,\"totalHours\":320,\"studentCount\":235},{\"teacherId\":14,\"teacherNo\":\"T10014\",\"teacherName\":\"韩静\",\"classCount\":5,\"totalHours\":320,\"studentCount\":101},{\"teacherId\":22,\"teacherNo\":\"T10022\",\"teacherName\":\"贺萌琳\",\"classCount\":5,\"totalHours\":320,\"studentCount\":114},{\"teacherId\":53,\"teacherNo\":\"T10053\",\"teacherName\":\"卢霞轩\",\"classCount\":5,\"totalHours\":320,\"studentCount\":132},{\"teacherId\":123,\"teacherNo\":\"T10123\",\"teacherName\":\"彭杰平\",\"classCount\":5,\"totalHours\":320,\"studentCount\":188},{\"teacherId\":141,\"teacherNo\":\"T10141\",\"teacherName\":\"田秀兰\",\"classC...<truncated>"
+  },
+  {
+    "name": "8 选课统计",
+    "path": "/api/v1/admin/statistics/course-selection?semesterId=5&page=1&pageSize=20",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=20; total=370",
+    "sample": [
+      {
+        "courseId": 146,
+        "courseCode": "GE002",
+        "courseName": "创新创业基础",
+        "teachingClassId": 1056,
+        "classCode": "2026-2027-1-GE002-01",
+        "teacherId": 168,
+        "teacherName": "崔森昊",
+        "capacity": 150,
+        "selectedCount": 150,
+        "waitingCount": 1,
+        "withdrawCount": 33,
+        "fullFlag": 1,
+        "fullRate": 100.0
+      },
+      {
+        "courseId": 146,
+        "courseCode": "GE002",
+        "courseName": "创新创业基础",
+        "teachingClassId": 1057,
+        "classCode": "2026-2027-1-GE002-02",
+        "teacherId": 111,
+        "teacherName": "何娟",
+        "capacity": 150,
+        "selectedCount": 150,
+        "waitingCount": 2,
+        "withdrawCount": 24,
+        "fullFlag": 1,
+        "fullRate": 100.0
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"records\":[{\"courseId\":146,\"courseCode\":\"GE002\",\"courseName\":\"创新创业基础\",\"teachingClassId\":1056,\"classCode\":\"2026-2027-1-GE002-01\",\"teacherId\":168,\"teacherName\":\"崔森昊\",\"capacity\":150,\"selectedCount\":150,\"waitingCount\":1,\"withdrawCount\":33,\"fullFlag\":1,\"fullRate\":100.0},{\"courseId\":146,\"courseCode\":\"GE002\",\"courseName\":\"创新创业基础\",\"teachingClassId\":1057,\"classCode\":\"2026-2027-1-GE002-02\",\"teacherId\":111,\"teacherName\":\"何娟\",\"capacity\":150,\"selectedCount\":150,\"waitingCount\":2,\"withdrawCount\":24,\"fullFlag\":1,\"fullRate\":100.0},{\"courseId\":156,\"courseCode\":\"GE012\",\"courseName\":\"社交礼仪\",\"teachingClassId\":1084,\"classCode\":\"2026-2027-1-GE012-01\",\"teacherId\":135,\"teacherName\":\"雷琪\",\"capacity\":150,\"selectedCount\":150,\"waitingCount\":2,\"withdrawCount\":29,\"fullFlag\":1,\"fullRate\":100.0},{\"courseId\":156,\"courseCode\":\"GE012\",\"courseName\":\"社交礼仪\",\"teachingClassId\":1085,\"classCode\":\"2026-2027-1-GE012-02\",\"teacherId\":143,\"teacherName\":\"赵雨璐\",\"capacity\":150,\"selectedCount\":150,\"waitingCount\":2,\"withdrawCount\":30,\"fullFlag\":1,\"fullRate\":100.0},{\"courseId\":162,\"courseCode\":\"GE018\",\"courseName\":\"逻辑思维\",\"teachingClassId\":1099,\"classCode\":\"2026-2027-1-GE018-01\",\"teacherId\":142,\"tea...<truncated>"
+  },
+  {
+    "name": "9 数据巡检问题",
+    "path": "/api/v1/admin/data-audit/issues?page=1&pageSize=20",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=20; total=84",
+    "sample": [
+      {
+        "issueId": 242,
+        "ruleCode": "CAPACITY_ZERO",
+        "ruleName": "教学班容量为 0 或小于已选人数",
+        "bizType": "TEACHING_CLASS",
+        "bizId": 737,
+        "severity": "HIGH",
+        "description": "教学班【2026-2027-1-CS200-01】容量为 0 或小于已选人数 15",
+        "semesterId": 5,
+        "statDate": "2026-10-20"
+      },
+      {
+        "issueId": 243,
+        "ruleCode": "NO_SCHEDULE",
+        "ruleName": "教学班未编排排课",
+        "bizType": "TEACHING_CLASS",
+        "bizId": 800,
+        "severity": "LOW",
+        "description": "教学班【2026-2027-1-SEC204-01】尚未编排排课",
+        "semesterId": 5,
+        "statDate": "2026-10-20"
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"records\":[{\"issueId\":242,\"ruleCode\":\"CAPACITY_ZERO\",\"ruleName\":\"教学班容量为 0 或小于已选人数\",\"bizType\":\"TEACHING_CLASS\",\"bizId\":737,\"severity\":\"HIGH\",\"description\":\"教学班【2026-2027-1-CS200-01】容量为 0 或小于已选人数 15\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":243,\"ruleCode\":\"NO_SCHEDULE\",\"ruleName\":\"教学班未编排排课\",\"bizType\":\"TEACHING_CLASS\",\"bizId\":800,\"severity\":\"LOW\",\"description\":\"教学班【2026-2027-1-SEC204-01】尚未编排排课\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":244,\"ruleCode\":\"NO_SCHEDULE\",\"ruleName\":\"教学班未编排排课\",\"bizType\":\"TEACHING_CLASS\",\"bizId\":935,\"severity\":\"LOW\",\"description\":\"教学班【2026-2027-1-ECON200-03】尚未编排排课\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":306,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"CLASSROOM\",\"bizId\":1,\"severity\":\"MEDIUM\",\"description\":\"教室【1】在周2 第1-2节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":406,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"CLASSROOM\",\"bizId\":3,\"severity\":\"MEDIUM\",\"description\":\"教室【3】在周4 第3-4节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":279,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"CLASSROOM\",\"bizId\":4,\"severity\":\"MEDIUM\"...<truncated>"
+  },
+  {
+    "name": "9b 巡检-教室冲突",
+    "path": "/api/v1/admin/data-audit/issues?ruleCode=SCHEDULE_CONFLICT&bizType=CLASSROOM&page=1&pageSize=100",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=46; total=46",
+    "sample": [
+      {
+        "issueId": 306,
+        "ruleCode": "SCHEDULE_CONFLICT",
+        "ruleName": "排课时间冲突",
+        "bizType": "CLASSROOM",
+        "bizId": 1,
+        "severity": "MEDIUM",
+        "description": "教室【1】在周2 第1-2节存在排课冲突",
+        "semesterId": 5,
+        "statDate": "2026-10-20"
+      },
+      {
+        "issueId": 406,
+        "ruleCode": "SCHEDULE_CONFLICT",
+        "ruleName": "排课时间冲突",
+        "bizType": "CLASSROOM",
+        "bizId": 3,
+        "severity": "MEDIUM",
+        "description": "教室【3】在周4 第3-4节存在排课冲突",
+        "semesterId": 5,
+        "statDate": "2026-10-20"
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"records\":[{\"issueId\":306,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"CLASSROOM\",\"bizId\":1,\"severity\":\"MEDIUM\",\"description\":\"教室【1】在周2 第1-2节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":406,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"CLASSROOM\",\"bizId\":3,\"severity\":\"MEDIUM\",\"description\":\"教室【3】在周4 第3-4节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":279,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"CLASSROOM\",\"bizId\":4,\"severity\":\"MEDIUM\",\"description\":\"教室【4】在周1 第7-8节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":298,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"CLASSROOM\",\"bizId\":5,\"severity\":\"MEDIUM\",\"description\":\"教室【5】在周2 第1-2节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":370,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"CLASSROOM\",\"bizId\":6,\"severity\":\"MEDIUM\",\"description\":\"教室【6】在周3 第7-8节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":483,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"CLASSROOM\",\"bizId\":7,\"severity\":\"MEDIUM\",\"description\":\"教室【7】在周5 第9-10节存在排课冲突\",\"semesterId\":5,\"st...<truncated>"
+  },
+  {
+    "name": "9c 巡检-教师冲突",
+    "path": "/api/v1/admin/data-audit/issues?ruleCode=SCHEDULE_CONFLICT&bizType=TEACHER&page=1&pageSize=100",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=35; total=35",
+    "sample": [
+      {
+        "issueId": 265,
+        "ruleCode": "SCHEDULE_CONFLICT",
+        "ruleName": "排课时间冲突",
+        "bizType": "TEACHER",
+        "bizId": 13,
+        "severity": "MEDIUM",
+        "description": "教师【13】在周1 第3-4节存在排课冲突",
+        "semesterId": 5,
+        "statDate": "2026-10-20"
+      },
+      {
+        "issueId": 326,
+        "ruleCode": "SCHEDULE_CONFLICT",
+        "ruleName": "排课时间冲突",
+        "bizType": "TEACHER",
+        "bizId": 41,
+        "severity": "MEDIUM",
+        "description": "教师【41】在周2 第9-10节存在排课冲突",
+        "semesterId": 5,
+        "statDate": "2026-10-20"
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"records\":[{\"issueId\":265,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"TEACHER\",\"bizId\":13,\"severity\":\"MEDIUM\",\"description\":\"教师【13】在周1 第3-4节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":326,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"TEACHER\",\"bizId\":41,\"severity\":\"MEDIUM\",\"description\":\"教师【41】在周2 第9-10节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":246,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"TEACHER\",\"bizId\":47,\"severity\":\"MEDIUM\",\"description\":\"教师【47】在周1 第1-2节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":285,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"TEACHER\",\"bizId\":53,\"severity\":\"MEDIUM\",\"description\":\"教师【53】在周1 第9-10节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":261,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"TEACHER\",\"bizId\":59,\"severity\":\"MEDIUM\",\"description\":\"教师【59】在周1 第3-4节存在排课冲突\",\"semesterId\":5,\"statDate\":\"2026-10-20\"},{\"issueId\":414,\"ruleCode\":\"SCHEDULE_CONFLICT\",\"ruleName\":\"排课时间冲突\",\"bizType\":\"TEACHER\",\"bizId\":63,\"severity\":\"MEDIUM\",\"description\":\"教师【63】在周4 第3-4节存在排课冲突\",\"semesterId\":5,\"s...<truncated>"
+  },
+  {
+    "name": "10 学分预警",
+    "path": "/api/v1/admin/warnings/credit?semesterId=5&page=1&pageSize=20",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=20; total=2000",
+    "sample": [
+      {
+        "semesterId": 5,
+        "studentId": 189,
+        "studentNo": "20260049",
+        "studentName": "廖艳",
+        "majorName": "计算机科学与技术",
+        "gradeName": "2026级",
+        "hasPlan": true,
+        "message": "",
+        "riskLevel": "HIGH",
+        "riskReason": "按当前进度，剩余学期需每学期修满 34.6 学分，达到学期上限的 115%",
+        "completedCredit": 11.8,
+        "passedCredit": 11.8,
+        "planTotalCredit": 150.0,
+        "progressRate": 7.9,
+        "remainingCredit": 138.2,
+        "remainingSemesters": 4,
+        "requiredCreditPerSemester": 34.6,
+        "maxCreditPerSemester": 30.0,
+        "requiredRate": 1.15,
+        "gaps": [
+          {
+            "courseType": "REQUIRED",
+            "courseTypeName": "必修课",
+            "gapCredit": 79.5
+          },
+          {
+            "courseType": "MAJOR_ELECTIVE",
+            "courseTypeName": "专业选修课",
+            "gapCredit": 42.0
+          },
+          {
+            "courseType": "PUBLIC_ELECTIVE",
+            "courseTypeName": "公共选修课",
+            "gapCredit": 16.7
+          }
+        ]
+      },
+      {
+        "semesterId": 5,
+        "studentId": 146,
+        "studentNo": "20260037",
+        "studentName": "郑澜",
+        "majorName": "网络空间安全",
+        "gradeName": "2026级",
+        "hasPlan": true,
+        "message": "",
+        "riskLevel": "HIGH",
+        "riskReason": "按当前进度，剩余学期需每学期修满 35.7 学分，达到学期上限的 119%",
+        "completedCredit": 12.1,
+        "passedCredit": 12.1,
+        "planTotalCredit": 155.0,
+        "progressRate": 7.8,
+        "remainingCredit": 142.9,
+        "remainingSemesters": 4,
+        "requiredCreditPerSemester": 35.7,
+        "maxCreditPerSemester": 30.0,
+        "requiredRate": 1.19,
+        "gaps": [
+          {
+            "courseType": "REQUIRED",
+            "courseTypeName": "必修课",
+            "gapCredit": 84.5
+          },
+          {
+            "courseType": "MAJOR_ELECTIVE",
+            "courseTypeName": "专业选修课",
+            "gapCredit": 42.5
+          },
+          {
+            "courseType": "PUBLIC_ELECTIVE",
+            "courseTypeName": "公共选修课",
+            "gapCredit": 15.9
+          }
+        ]
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"records\":[{\"semesterId\":5,\"studentId\":189,\"studentNo\":\"20260049\",\"studentName\":\"廖艳\",\"majorName\":\"计算机科学与技术\",\"gradeName\":\"2026级\",\"hasPlan\":true,\"message\":\"\",\"riskLevel\":\"HIGH\",\"riskReason\":\"按当前进度，剩余学期需每学期修满 34.6 学分，达到学期上限的 115%\",\"completedCredit\":11.8,\"passedCredit\":11.8,\"planTotalCredit\":150.0,\"progressRate\":7.90,\"remainingCredit\":138.2,\"remainingSemesters\":4,\"requiredCreditPerSemester\":34.6,\"maxCreditPerSemester\":30.0,\"requiredRate\":1.15,\"gaps\":[{\"courseType\":\"REQUIRED\",\"courseTypeName\":\"必修课\",\"gapCredit\":79.5},{\"courseType\":\"MAJOR_ELECTIVE\",\"courseTypeName\":\"专业选修课\",\"gapCredit\":42.0},{\"courseType\":\"PUBLIC_ELECTIVE\",\"courseTypeName\":\"公共选修课\",\"gapCredit\":16.7}]},{\"semesterId\":5,\"studentId\":146,\"studentNo\":\"20260037\",\"studentName\":\"郑澜\",\"majorName\":\"网络空间安全\",\"gradeName\":\"2026级\",\"hasPlan\":true,\"message\":\"\",\"riskLevel\":\"HIGH\",\"riskReason\":\"按当前进度，剩余学期需每学期修满 35.7 学分，达到学期上限的 119%\",\"completedCredit\":12.1,\"passedCredit\":12.1,\"planTotalCredit\":155.0,\"progressRate\":7.80,\"remainingCredit\":142.9,\"remainingSemesters\":4,\"requiredCreditPerSemester\":35.7,\"maxCreditPerSemester\":30.0,\"requiredRate\":1.19,\"gaps\":[{\"courseType\":\"REQUIRED\",\"courseTypeName\":\"必修课\",\"gapCr...<truncated>"
+  },
+  {
+    "name": "11a 学生毕业风险",
+    "path": "/api/v1/student/graduation-risk",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "obj keys=semesterId,hasPlan,message,riskLevel,riskReason,completedCredit,passedCredit,planTotalCredit,progressRate,remainingCredit,remainingSemesters,requiredCreditPerSemester,maxCreditPerSemester,requiredRate",
+    "sample": {
+      "semesterId": 5,
+      "hasPlan": true,
+      "message": "",
+      "riskLevel": "HIGH",
+      "riskReason": "按当前进度，剩余学期需每学期修满 32.2 学分，达到学期上限的 107%",
+      "completedCredit": 21.3,
+      "passedCredit": 21.3,
+      "planTotalCredit": 150.0,
+      "progressRate": 14.2,
+      "remainingCredit": 128.7
+    },
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"semesterId\":5,\"hasPlan\":true,\"message\":\"\",\"riskLevel\":\"HIGH\",\"riskReason\":\"按当前进度，剩余学期需每学期修满 32.2 学分，达到学期上限的 107%\",\"completedCredit\":21.3,\"passedCredit\":21.3,\"planTotalCredit\":150.0,\"progressRate\":14.2,\"remainingCredit\":128.7,\"remainingSemesters\":4,\"requiredCreditPerSemester\":32.2,\"maxCreditPerSemester\":30.0,\"requiredRate\":1.07,\"gaps\":[{\"courseType\":\"REQUIRED\",\"courseTypeName\":\"必修课\",\"gapCredit\":78.7},{\"courseType\":\"MAJOR_ELECTIVE\",\"courseTypeName\":\"专业选修课\",\"gapCredit\":42.0},{\"courseType\":\"PUBLIC_ELECTIVE\",\"courseTypeName\":\"公共选修课\",\"gapCredit\":8.0}]},\"timestamp\":1792488134032,\"success\":true}"
+  },
+  {
+    "name": "11b 学生学分进度",
+    "path": "/api/v1/student/credit-progress",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "items len=3; total=None",
+    "sample": [
+      {
+        "courseType": "REQUIRED",
+        "courseTypeName": "必修课",
+        "completedCredit": 4.4,
+        "passedCredit": 4.4,
+        "requiredCredit": 83.1,
+        "gapCredit": 78.7,
+        "progressRate": 5.3
+      },
+      {
+        "courseType": "MAJOR_ELECTIVE",
+        "courseTypeName": "专业选修课",
+        "completedCredit": 0.0,
+        "passedCredit": 0.0,
+        "requiredCredit": 42.0,
+        "gapCredit": 42.0,
+        "progressRate": 0.0
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"semesterId\":5,\"hasPlan\":true,\"message\":\"\",\"completedCredit\":21.3,\"passedCredit\":21.3,\"planTotalCredit\":150.0,\"progressRate\":14.2,\"items\":[{\"courseType\":\"REQUIRED\",\"courseTypeName\":\"必修课\",\"completedCredit\":4.4,\"passedCredit\":4.4,\"requiredCredit\":83.1,\"gapCredit\":78.7,\"progressRate\":5.3},{\"courseType\":\"MAJOR_ELECTIVE\",\"courseTypeName\":\"专业选修课\",\"completedCredit\":0.0,\"passedCredit\":0.0,\"requiredCredit\":42.0,\"gapCredit\":42.0,\"progressRate\":0.0},{\"courseType\":\"PUBLIC_ELECTIVE\",\"courseTypeName\":\"公共选修课\",\"completedCredit\":16.9,\"passedCredit\":16.9,\"requiredCredit\":24.9,\"gapCredit\":8.0,\"progressRate\":67.9}]},\"timestamp\":1792488134073,\"success\":true}"
+  },
+  {
+    "name": "11c 学生学分进度(sem9 历史)",
+    "path": "/api/v1/student/credit-progress?semesterId=9",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "items len=3; total=None",
+    "sample": [
+      {
+        "courseType": "REQUIRED",
+        "courseTypeName": "必修课",
+        "completedCredit": 4.4,
+        "passedCredit": 4.4,
+        "requiredCredit": 83.1,
+        "gapCredit": 78.7,
+        "progressRate": 5.3
+      },
+      {
+        "courseType": "MAJOR_ELECTIVE",
+        "courseTypeName": "专业选修课",
+        "completedCredit": 0.0,
+        "passedCredit": 0.0,
+        "requiredCredit": 42.0,
+        "gapCredit": 42.0,
+        "progressRate": 0.0
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"semesterId\":9,\"hasPlan\":true,\"message\":\"\",\"completedCredit\":21.3,\"passedCredit\":21.3,\"planTotalCredit\":150.0,\"progressRate\":14.2,\"items\":[{\"courseType\":\"REQUIRED\",\"courseTypeName\":\"必修课\",\"completedCredit\":4.4,\"passedCredit\":4.4,\"requiredCredit\":83.1,\"gapCredit\":78.7,\"progressRate\":5.3},{\"courseType\":\"MAJOR_ELECTIVE\",\"courseTypeName\":\"专业选修课\",\"completedCredit\":0.0,\"passedCredit\":0.0,\"requiredCredit\":42.0,\"gapCredit\":42.0,\"progressRate\":0.0},{\"courseType\":\"PUBLIC_ELECTIVE\",\"courseTypeName\":\"公共选修课\",\"completedCredit\":16.9,\"passedCredit\":16.9,\"requiredCredit\":24.9,\"gapCredit\":8.0,\"progressRate\":67.9}]},\"timestamp\":1792488134097,\"success\":true}"
+  },
+  {
+    "name": "12a 教师工作量",
+    "path": "/api/v1/teacher/workload",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "obj keys=teacherId,teacherNo,teacherName,semesterId,classCount,totalHours,studentCount,classes",
+    "sample": {
+      "teacherId": 5,
+      "teacherNo": "T10005",
+      "teacherName": "韩睿超",
+      "semesterId": 5,
+      "classCount": 5,
+      "totalHours": 320,
+      "studentCount": 74,
+      "classes": [
+        {
+          "teachingClassId": 738,
+          "classCode": "2026-2027-1-CS200-02",
+          "courseName": "计算机科学与技术计算机导论",
+          "credit": 4.0,
+          "capacity": 50,
+          "selectedCount": 22,
+          "totalHours": 64
+        },
+        {
+          "teachingClassId": 808,
+          "classCode": "2026-2027-1-MATH201-01",
+          "courseName": "数学与应用数学高等代数",
+          "credit": 3.5,
+          "capacity": 120,
+          "selectedCount": 23,
+          "totalHours": 64
+        },
+        {
+          "teachingClassId": 814,
+          "classCode": "2026-2027-1-MATH204-01",
+          "courseName": "数学与应用数学常微分方程",
+          "credit": 2.1,
+          "capacity": 80,
+          "selectedCount": 15,
+          "totalHours": 64
+        },
+        {
+          "teachingClassId": 852,
+          "classCode": "2026-2027-1-EE202-03",
+          "courseName": "电子信息工程数字电子技术",
+          "credit": 4.6,
+          "capacity": 50,
+          "selectedCount": 11,
+          "totalHours": 64
+        },
+        {
+          "teachingClassId": 891,
+          "classCode": "2026-2027-1-ME202-03",
+          "courseName": "机械工程材料力学",
+          "credit": 4.1,
+          "capacity": 120,
+          "selectedCount": 10,
+          "totalHours": 64
+        }
+      ]
+    },
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"teacherId\":5,\"teacherNo\":\"T10005\",\"teacherName\":\"韩睿超\",\"semesterId\":5,\"classCount\":5,\"totalHours\":320,\"studentCount\":74,\"classes\":[{\"teachingClassId\":738,\"classCode\":\"2026-2027-1-CS200-02\",\"courseName\":\"计算机科学与技术计算机导论\",\"credit\":4.0,\"capacity\":50,\"selectedCount\":22,\"totalHours\":64},{\"teachingClassId\":808,\"classCode\":\"2026-2027-1-MATH201-01\",\"courseName\":\"数学与应用数学高等代数\",\"credit\":3.5,\"capacity\":120,\"selectedCount\":23,\"totalHours\":64},{\"teachingClassId\":814,\"classCode\":\"2026-2027-1-MATH204-01\",\"courseName\":\"数学与应用数学常微分方程\",\"credit\":2.1,\"capacity\":80,\"selectedCount\":15,\"totalHours\":64},{\"teachingClassId\":852,\"classCode\":\"2026-2027-1-EE202-03\",\"courseName\":\"电子信息工程数字电子技术\",\"credit\":4.6,\"capacity\":50,\"selectedCount\":11,\"totalHours\":64},{\"teachingClassId\":891,\"classCode\":\"2026-2027-1-ME202-03\",\"courseName\":\"机械工程材料力学\",\"credit\":4.1,\"capacity\":120,\"selectedCount\":10,\"totalHours\":64}]},\"timestamp\":1792488134417,\"success\":true}"
+  },
+  {
+    "name": "12b 教师成绩预警",
+    "path": "/api/v1/teacher/score-warnings",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "records len=2; total=2",
+    "sample": [
+      {
+        "teachingClassId": 814,
+        "classCode": "2026-2027-1-MATH204-01",
+        "courseName": "数学与应用数学常微分方程",
+        "teacherName": "韩睿超",
+        "majorName": "数学与应用数学",
+        "selectedCount": 15,
+        "scoredCount": 0,
+        "inputCompleteRate": 0.0,
+        "passRate": 0.0,
+        "excellentRate": 0.0,
+        "baselinePassRate": 97.2,
+        "deviation": -97.2,
+        "anomalyTypes": [
+          "FAIL_RATE_HIGH"
+        ],
+        "anomalyReason": "及格率低于同课程历史基线 97.2 个百分点（基线 97.2）",
+        "distribution": [
+          {
+            "segment": "0-59",
+            "count": 0
+          },
+          {
+            "segment": "60-69",
+            "count": 0
+          },
+          {
+            "segment": "70-79",
+            "count": 0
+          },
+          {
+            "segment": "80-84",
+            "count": 0
+          },
+          {
+            "segment": "85-100",
+            "count": 0
+          }
+        ]
+      },
+      {
+        "teachingClassId": 852,
+        "classCode": "2026-2027-1-EE202-03",
+        "courseName": "电子信息工程数字电子技术",
+        "teacherName": "韩睿超",
+        "majorName": "电子信息工程",
+        "selectedCount": 11,
+        "scoredCount": 0,
+        "inputCompleteRate": 0.0,
+        "passRate": 0.0,
+        "excellentRate": 0.0,
+        "baselinePassRate": 94.5,
+        "deviation": -94.5,
+        "anomalyTypes": [
+          "FAIL_RATE_HIGH"
+        ],
+        "anomalyReason": "及格率低于同课程历史基线 94.5 个百分点（基线 94.5）",
+        "distribution": [
+          {
+            "segment": "0-59",
+            "count": 0
+          },
+          {
+            "segment": "60-69",
+            "count": 0
+          },
+          {
+            "segment": "70-79",
+            "count": 0
+          },
+          {
+            "segment": "80-84",
+            "count": 0
+          },
+          {
+            "segment": "85-100",
+            "count": 0
+          }
+        ]
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"records\":[{\"teachingClassId\":814,\"classCode\":\"2026-2027-1-MATH204-01\",\"courseName\":\"数学与应用数学常微分方程\",\"teacherName\":\"韩睿超\",\"majorName\":\"数学与应用数学\",\"selectedCount\":15,\"scoredCount\":0,\"inputCompleteRate\":0.0,\"passRate\":0.0,\"excellentRate\":0.0,\"baselinePassRate\":97.2,\"deviation\":-97.2,\"anomalyTypes\":[\"FAIL_RATE_HIGH\"],\"anomalyReason\":\"及格率低于同课程历史基线 97.2 个百分点（基线 97.2）\",\"distribution\":[{\"segment\":\"0-59\",\"count\":0},{\"segment\":\"60-69\",\"count\":0},{\"segment\":\"70-79\",\"count\":0},{\"segment\":\"80-84\",\"count\":0},{\"segment\":\"85-100\",\"count\":0}]},{\"teachingClassId\":852,\"classCode\":\"2026-2027-1-EE202-03\",\"courseName\":\"电子信息工程数字电子技术\",\"teacherName\":\"韩睿超\",\"majorName\":\"电子信息工程\",\"selectedCount\":11,\"scoredCount\":0,\"inputCompleteRate\":0.0,\"passRate\":0.0,\"excellentRate\":0.0,\"baselinePassRate\":94.5,\"deviation\":-94.5,\"anomalyTypes\":[\"FAIL_RATE_HIGH\"],\"anomalyReason\":\"及格率低于同课程历史基线 94.5 个百分点（基线 94.5）\",\"distribution\":[{\"segment\":\"0-59\",\"count\":0},{\"segment\":\"60-69\",\"count\":0},{\"segment\":\"70-79\",\"count\":0},{\"segment\":\"80-84\",\"count\":0},{\"segment\":\"85-100\",\"count\":0}]}],\"page\":1,\"pageSize\":20,\"total\":2},\"timestamp\":1792488135010,\"success\":true}"
+  },
+  {
+    "name": "12c 教师教学班列表",
+    "path": "/api/v1/teacher/teaching-classes?page=1&pageSize=30",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "list len=5",
+    "sample": [
+      {
+        "teachingClassId": 891,
+        "classCode": "2026-2027-1-ME202-03",
+        "className": "机械工程材料力学3班",
+        "courseName": "机械工程材料力学",
+        "capacity": 120,
+        "selectedCount": 10,
+        "schedules": [
+          {
+            "id": 1781,
+            "weekday": 1,
+            "startSection": 9,
+            "endSection": 10,
+            "startWeek": 1,
+            "endWeek": 16,
+            "buildingName": "第二教学楼",
+            "roomNo": "C03"
+          },
+          {
+            "id": 1782,
+            "weekday": 5,
+            "startSection": 3,
+            "endSection": 4,
+            "startWeek": 1,
+            "endWeek": 16,
+            "buildingName": "第二教学楼",
+            "roomNo": "C03"
+          }
+        ]
+      },
+      {
+        "teachingClassId": 852,
+        "classCode": "2026-2027-1-EE202-03",
+        "className": "电子信息工程数字电子技术3班",
+        "courseName": "电子信息工程数字电子技术",
+        "capacity": 50,
+        "selectedCount": 11,
+        "schedules": [
+          {
+            "id": 1703,
+            "weekday": 4,
+            "startSection": 9,
+            "endSection": 10,
+            "startWeek": 1,
+            "endWeek": 16,
+            "buildingName": "实验楼",
+            "roomNo": "D10"
+          },
+          {
+            "id": 1704,
+            "weekday": 5,
+            "startSection": 9,
+            "endSection": 10,
+            "startWeek": 1,
+            "endWeek": 16,
+            "buildingName": "实验楼",
+            "roomNo": "D10"
+          }
+        ]
+      }
+    ],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":[{\"teachingClassId\":891,\"classCode\":\"2026-2027-1-ME202-03\",\"className\":\"机械工程材料力学3班\",\"courseName\":\"机械工程材料力学\",\"capacity\":120,\"selectedCount\":10,\"schedules\":[{\"id\":1781,\"weekday\":1,\"startSection\":9,\"endSection\":10,\"startWeek\":1,\"endWeek\":16,\"buildingName\":\"第二教学楼\",\"roomNo\":\"C03\"},{\"id\":1782,\"weekday\":5,\"startSection\":3,\"endSection\":4,\"startWeek\":1,\"endWeek\":16,\"buildingName\":\"第二教学楼\",\"roomNo\":\"C03\"}]},{\"teachingClassId\":852,\"classCode\":\"2026-2027-1-EE202-03\",\"className\":\"电子信息工程数字电子技术3班\",\"courseName\":\"电子信息工程数字电子技术\",\"capacity\":50,\"selectedCount\":11,\"schedules\":[{\"id\":1703,\"weekday\":4,\"startSection\":9,\"endSection\":10,\"startWeek\":1,\"endWeek\":16,\"buildingName\":\"实验楼\",\"roomNo\":\"D10\"},{\"id\":1704,\"weekday\":5,\"startSection\":9,\"endSection\":10,\"startWeek\":1,\"endWeek\":16,\"buildingName\":\"实验楼\",\"roomNo\":\"D10\"}]},{\"teachingClassId\":814,\"classCode\":\"2026-2027-1-MATH204-01\",\"className\":\"数学与应用数学常微分方程1班\",\"courseName\":\"数学与应用数学常微分方程\",\"capacity\":80,\"selectedCount\":15,\"schedules\":[{\"id\":1628,\"weekday\":2,\"startSection\":1,\"endSection\":2,\"startWeek\":1,\"endWeek\":16,\"buildingName\":\"第一教学楼\",\"roomNo\":\"A05\"},{\"id\":1627,\"weekday\":2,\"startSection\":3,\"endSection\":4,\"startWeek\":1,\"endW...<truncated>"
+  },
+  {
+    "name": "12d 教学班成绩统计(738)",
+    "path": "/api/v1/teacher/teaching-classes/738/score-statistics",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "obj keys=teachingClassId,teachingClassName,courseName,teacherName,selectedCount,scoredCount,unscoredCount,averageScore,maxScore,minScore,passRate,excellentRate,distribution",
+    "sample": {
+      "teachingClassId": 738,
+      "teachingClassName": "计算机科学与技术计算机导论2班",
+      "courseName": "计算机科学与技术计算机导论",
+      "teacherName": "韩睿超",
+      "selectedCount": 22,
+      "scoredCount": 22,
+      "unscoredCount": 0,
+      "averageScore": 86.0,
+      "maxScore": 96.8,
+      "minScore": 73.5
+    },
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"teachingClassId\":738,\"teachingClassName\":\"计算机科学与技术计算机导论2班\",\"courseName\":\"计算机科学与技术计算机导论\",\"teacherName\":\"韩睿超\",\"selectedCount\":22,\"scoredCount\":22,\"unscoredCount\":0,\"averageScore\":86.0,\"maxScore\":96.80,\"minScore\":73.50,\"passRate\":100.0,\"excellentRate\":59.1,\"distribution\":[{\"range\":\"0-59\",\"count\":0,\"rate\":0.0},{\"range\":\"60-69\",\"count\":0,\"rate\":0.0},{\"range\":\"70-79\",\"count\":4,\"rate\":18.2},{\"range\":\"80-89\",\"count\":9,\"rate\":40.9},{\"range\":\"90-100\",\"count\":6,\"rate\":27.3}]},\"timestamp\":1792488135105,\"success\":true}"
+  },
+  {
+    "name": "12e 教学班成绩统计(759)",
+    "path": "/api/v1/teacher/teaching-classes/759/score-statistics",
+    "http": 200,
+    "code": 40303,
+    "message": "无教学班操作权限",
+    "count": "data=null",
+    "sample": null,
+    "ok": false,
+    "raw_head": "{\"code\":40303,\"message\":\"无教学班操作权限\",\"timestamp\":1792488135154,\"success\":false}"
+  },
+  {
+    "name": "13a 教师T10001工作量",
+    "path": "/api/v1/teacher/workload",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "obj keys=teacherId,teacherNo,teacherName,semesterId,classCount,totalHours,studentCount,classes",
+    "sample": {
+      "teacherId": 1,
+      "teacherNo": "T10001",
+      "teacherName": "张启明",
+      "semesterId": 5,
+      "classCount": 0,
+      "totalHours": 0,
+      "studentCount": 0,
+      "classes": []
+    },
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":{\"teacherId\":1,\"teacherNo\":\"T10001\",\"teacherName\":\"张启明\",\"semesterId\":5,\"classCount\":0,\"totalHours\":0,\"studentCount\":0,\"classes\":[]},\"timestamp\":1792488135415,\"success\":true}"
+  },
+  {
+    "name": "13b 教师T10001教学班",
+    "path": "/api/v1/teacher/teaching-classes?page=1&pageSize=30",
+    "http": 200,
+    "code": 200,
+    "message": "success",
+    "count": "list len=0",
+    "sample": [],
+    "ok": true,
+    "raw_head": "{\"code\":200,\"message\":\"success\",\"data\":[],\"timestamp\":1792488135439,\"success\":true}"
+  }
+]

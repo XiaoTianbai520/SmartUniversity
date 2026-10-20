@@ -1,0 +1,292 @@
+[
+  {
+    "name": "管理员 admin 登录",
+    "pass": true,
+    "detail": "HTTP=200"
+  },
+  {
+    "name": "管理员显示名非空",
+    "pass": true,
+    "detail": "admin"
+  },
+  {
+    "name": "学生 20260001 登录",
+    "pass": true,
+    "detail": "HTTP=200"
+  },
+  {
+    "name": "学生 20260001 显示名 == 张明远",
+    "pass": true,
+    "detail": "实际 张明远"
+  },
+  {
+    "name": "学生 20260002 登录",
+    "pass": true,
+    "detail": "HTTP=200"
+  },
+  {
+    "name": "学生 20260002 显示名 == 李思远",
+    "pass": true,
+    "detail": "实际 李思远"
+  },
+  {
+    "name": "学生 20260003 登录",
+    "pass": true,
+    "detail": "HTTP=200"
+  },
+  {
+    "name": "学生 20260003 显示名 == 王雨桐",
+    "pass": true,
+    "detail": "实际 王雨桐"
+  },
+  {
+    "name": "教师 T10001 登录",
+    "pass": true,
+    "detail": "HTTP=200"
+  },
+  {
+    "name": "教师 T10001 显示名 == 张启明",
+    "pass": true,
+    "detail": "张启明"
+  },
+  {
+    "name": "无 token 访问管理端被拒",
+    "pass": true,
+    "detail": "HTTP=200 code=40101"
+  },
+  {
+    "name": "学生 token 访问管理端被拒",
+    "pass": true,
+    "detail": "code=40301"
+  },
+  {
+    "name": "教务端 学期列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教务端 选课批次列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教务端 课程列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教务端 教学班列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教务端 教室列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教务端 教师列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教务端 学生列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教务端 专业列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教务端 年级列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教务端 定时任务列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260001 可选教学班",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260001 当前批次",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260001 我的选课",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260001 候补列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260001 我的成绩",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260001 我的课表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260001 学分汇总",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260001 学分进度",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260001 毕业风险",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260002 可选教学班",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260002 当前批次",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260002 我的选课",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260002 候补列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260002 我的成绩",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260002 我的课表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260002 学分汇总",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260002 学分进度",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260002 毕业风险",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260003 可选教学班",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260003 当前批次",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260003 我的选课",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260003 候补列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260003 我的成绩",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260003 我的课表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260003 学分汇总",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260003 学分进度",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "学生 20260003 毕业风险",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教师 T10005 登录",
+    "pass": true,
+    "detail": "code=200"
+  },
+  {
+    "name": "教师 T10005 教学班非空",
+    "pass": true,
+    "detail": "n=5"
+  },
+  {
+    "name": "教师端 教学班详情",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教师端 教学班学生名单",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教师端 成绩列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教师端 成绩统计",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教师端 教师工作量",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "教师端 成绩预警",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  },
+  {
+    "name": "通知列表",
+    "pass": true,
+    "detail": "HTTP=200 code=200"
+  }
+]

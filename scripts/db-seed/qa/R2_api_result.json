@@ -1,0 +1,231 @@
+[
+  {
+    "name": "1 sem5 2022级 remainingSemesters",
+    "pass": true,
+    "detail": "期望 1 实测 1（20220094 risk=LOW）",
+    "sample": null
+  },
+  {
+    "name": "1 sem5 2023级 remainingSemesters",
+    "pass": true,
+    "detail": "期望 2 实测 2（20230212 risk=HIGH）",
+    "sample": null
+  },
+  {
+    "name": "1 sem5 2024级 remainingSemesters",
+    "pass": true,
+    "detail": "期望 4 实测 4（20240055 risk=HIGH）",
+    "sample": null
+  },
+  {
+    "name": "1 sem5 2025级 remainingSemesters",
+    "pass": true,
+    "detail": "期望 6 实测 6（20250204 risk=HIGH）",
+    "sample": null
+  },
+  {
+    "name": "1 sem5 2026级 remainingSemesters",
+    "pass": true,
+    "detail": "期望 8 实测 8（20260106 risk=MEDIUM）",
+    "sample": null
+  },
+  {
+    "name": "1b sem9 2022级",
+    "pass": true,
+    "detail": "remainingSemesters=8（2022级期望 8；2026级只需 >0 且非 0/负）",
+    "sample": {
+      "semesterId": 9,
+      "studentId": 1774,
+      "studentNo": "20220326",
+      "studentName": "曹朗",
+      "majorName": "材料科学与工程",
+      "gradeName": "2022级",
+      "hasPlan": true,
+      "message": "",
+      "riskLevel": "MEDIUM",
+      "riskReason": "按当前进度，剩余学期需每学期修满 19.1 学分，达到学期上限的 64%",
+      "completedCredit": 17.0,
+      "passedCredit": 12.6,
+      "planTotalCredit": 170.0,
+      "progressRate": 10.0,
+      "remainingCredit": 153.0,
+      "remainingSemesters": 8,
+      "requiredCreditPerSemester": 19.1,
+      "maxCreditPerSemester": 30.0,
+      "requiredRate": 0.64,
+      "gaps": [
+        {
+          "courseType": "REQUIRED",
+          "courseTypeName": "必修课",
+          "gapCredit": 69.0
+        },
+        {
+          "courseType": "MAJOR_ELECTIVE",
+          "courseTypeName": "专业选修课",
+          "gapCredit": 37.0
+        },
+        {
+          "courseType": "PUBLIC_ELECTIVE",
+          "courseTypeName": "公共选修课",
+          "gapCredit": 47.0
+        }
+      ]
+    }
+  },
+  {
+    "name": "1b sem9 2026级",
+    "pass": true,
+    "detail": "remainingSemesters=9（2022级期望 8；2026级只需 >0 且非 0/负）",
+    "sample": {
+      "semesterId": 9,
+      "studentId": 12,
+      "studentNo": "20260006",
+      "studentName": "史澜",
+      "majorName": "生物医学工程",
+      "gradeName": "2026级",
+      "hasPlan": true,
+      "message": "",
+      "riskLevel": "MEDIUM",
+      "riskReason": "按当前进度，剩余学期需每学期修满 18.9 学分，达到学期上限的 63%",
+      "completedCredit": 0.0,
+      "passedCredit": 0.0,
+      "planTotalCredit": 170.0,
+      "progressRate": 0.0,
+      "remainingCredit": 170.0,
+      "remainingSemesters": 9,
+      "requiredCreditPerSemester": 18.9,
+      "maxCreditPerSemester": 30.0,
+      "requiredRate": 0.63,
+      "gaps": [
+        {
+          "courseType": "REQUIRED",
+          "courseTypeName": "必修课",
+          "gapCredit": 92.9
+        },
+        {
+          "courseType": "MAJOR_ELECTIVE",
+          "courseTypeName": "专业选修课",
+          "gapCredit": 35.1
+        },
+        {
+          "courseType": "PUBLIC_ELECTIVE",
+          "courseTypeName": "公共选修课",
+          "gapCredit": 42.0
+        }
+      ]
+    }
+  },
+  {
+    "name": "2 sem5 异常 total",
+    "pass": true,
+    "detail": "期望 23 实测 23",
+    "sample": null
+  },
+  {
+    "name": "2b sem5 无 scoredCount=0 的假阳性",
+    "pass": true,
+    "detail": "scoredCount=0 条数=0",
+    "sample": null
+  },
+  {
+    "name": "2c 739 仍被检出",
+    "pass": true,
+    "detail": "739 in records",
+    "sample": null
+  },
+  {
+    "name": "2d 759 仍被检出",
+    "pass": true,
+    "detail": "759 in records",
+    "sample": null
+  },
+  {
+    "name": "2e sem4 SCORE_MISSING 命中 373",
+    "pass": true,
+    "detail": "sem4 SCORE_MISSING total=1，373 命中=True",
+    "sample": null
+  },
+  {
+    "name": "3 同一学生 sem5 vs sem9 累计学分应递增",
+    "pass": true,
+    "detail": "sem5 completed=21.3 / sem9 completed=0.0",
+    "sample": null
+  },
+  {
+    "name": "14 T10001 workload.classCount",
+    "pass": true,
+    "detail": "期望 2 实测 2（totalHours=128 班级数组=2）",
+    "sample": null
+  },
+  {
+    "name": "14 T10001 teaching-classes 非空",
+    "pass": true,
+    "detail": "len=2",
+    "sample": null
+  },
+  {
+    "name": "14 T10001 成绩统计可用",
+    "pass": true,
+    "detail": "class=1014 code=200",
+    "sample": null
+  },
+  {
+    "name": "14 T10001 成绩预警无 scoredCount=0 假阳性",
+    "pass": true,
+    "detail": "total=0，scoredCount=0 条数=0",
+    "sample": null
+  },
+  {
+    "name": "14 T10002 workload.classCount",
+    "pass": true,
+    "detail": "期望 4 实测 4（totalHours=256 班级数组=4）",
+    "sample": null
+  },
+  {
+    "name": "14 T10002 teaching-classes 非空",
+    "pass": true,
+    "detail": "len=4",
+    "sample": null
+  },
+  {
+    "name": "14 T10002 成绩统计可用",
+    "pass": true,
+    "detail": "class=1070 code=200",
+    "sample": null
+  },
+  {
+    "name": "14 T10002 成绩预警无 scoredCount=0 假阳性",
+    "pass": true,
+    "detail": "total=0，scoredCount=0 条数=0",
+    "sample": null
+  },
+  {
+    "name": "overview",
+    "detail": {
+      "semesterId": 5,
+      "semesterCode": "2026-2027-1",
+      "studentCount": 2000,
+      "selectedStudentCount": 2000,
+      "courseCount": 164,
+      "teachingClassCount": 370,
+      "teacherCount": 155,
+      "selectionCount": 12756,
+      "waitlistCount": 350,
+      "withdrawCount": 1942,
+      "fullClassRate": 15.7,
+      "classroomUsageRate": 39.3,
+      "avgTeacherWorkload": 151.9,
+      "avgCreditProgressRate": 54.1,
+      "unpublishedClassCount": 315,
+      "batchStatus": "IN_PROGRESS",
+      "snapshotTime": "2026-10-20T18:12:03.2096462",
+      "fromSnapshot": false
+    }
+  },
+  {
+    "name": "4 巡检 total=98",
+    "pass": true,
+    "detail": "实测 98",
+    "sample": null
+  }
+]

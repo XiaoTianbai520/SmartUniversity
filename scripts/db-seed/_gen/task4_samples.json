@@ -1,0 +1,52 @@
+{
+  "full_samples": [
+    {
+      "id": 817,
+      "code": "2026-2027-1-MATH205-02",
+      "capacity": 57,
+      "selected": 57
+    },
+    {
+      "id": 857,
+      "code": "2026-2027-1-EE205-01",
+      "capacity": 49,
+      "selected": 49
+    },
+    {
+      "id": 974,
+      "code": "2026-2027-1-BUS200-02",
+      "capacity": 47,
+      "selected": 47
+    }
+  ],
+  "over_capacity": {
+    "id": 737,
+    "code": "2026-2027-1-CS200-01",
+    "capacity": 12,
+    "selected": 15
+  },
+  "no_schedule": [
+    {
+      "id": 800,
+      "code": "2026-2027-1-SEC204-01"
+    },
+    {
+      "id": 935,
+      "code": "2026-2027-1-ECON200-03"
+    }
+  ],
+  "schedule_conflict": {
+    "class_a": {
+      "id": 738,
+      "code": "2026-2027-1-CS200-02",
+      "teacher": 5
+    },
+    "class_b": {
+      "id": 740,
+      "code": "2026-2027-1-CS201-01",
+      "teacher": 108
+    },
+    "classroom_id": 1,
+    "weekday": 6
+  }
+}

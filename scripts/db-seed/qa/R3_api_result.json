@@ -1,0 +1,53 @@
+[
+  {
+    "item": "A1",
+    "total": 23,
+    "types": {
+      "FAIL_RATE_HIGH": 9,
+      "SCORE_TOO_HIGH": 14
+    },
+    "has1014": false,
+    "has739": true,
+    "has759": true,
+    "zero_scored": 0
+  },
+  {
+    "item": "B1",
+    "runs": [
+      {
+        "round": 1,
+        "http": 200,
+        "code": 200,
+        "elapsed_s": 6.8,
+        "data": {
+          "taskCode": "DATA_AUDIT_TASK",
+          "logId": 4880,
+          "status": "SUCCESS",
+          "scanCount": 370,
+          "successCount": 98,
+          "failCount": 0,
+          "durationMs": 6751
+        },
+        "before": "98\t2026-10-20",
+        "after": "98\t2026-10-20"
+      },
+      {
+        "round": 2,
+        "http": 200,
+        "code": 200,
+        "elapsed_s": 1.2,
+        "data": {
+          "taskCode": "DATA_AUDIT_TASK",
+          "logId": 4881,
+          "status": "SUCCESS",
+          "scanCount": 370,
+          "successCount": 98,
+          "failCount": 0,
+          "durationMs": 1181
+        },
+        "before": "98\t2026-10-20",
+        "after": "98\t2026-10-20"
+      }
+    ]
+  }
+]

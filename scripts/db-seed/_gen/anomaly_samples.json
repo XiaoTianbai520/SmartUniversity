@@ -1,0 +1,15 @@
+{
+  "fail_rate_high_class": 739,
+  "fail_rate_high_semester": 5,
+  "score_too_high_class": 759,
+  "score_too_high_semester": 5,
+  "score_missing_class": 373,
+  "score_missing_semester": 4,
+  "score_missing_students": [
+    57,
+    189,
+    201,
+    429,
+    545
+  ]
+}
