@@ -16,11 +16,14 @@ import com.smart.university.domain.entity.GradeCohortDO;
 import com.smart.university.domain.entity.MajorDO;
 import com.smart.university.domain.entity.SemesterDO;
 import com.smart.university.domain.entity.StudentDO;
+import com.smart.university.domain.entity.StatCreditProgressDO;
+import com.smart.university.domain.enums.CourseTypeEnum;
 import com.smart.university.mapper.GradeCohortMapper;
 import com.smart.university.mapper.MajorMapper;
 import com.smart.university.mapper.StudentMapper;
 import com.smart.university.service.CreditProgressService;
 import com.smart.university.service.GraduationRiskService;
+import com.smart.university.service.StatisticsSnapshotService;
 import com.smart.university.service.SemesterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,6 +61,7 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
     private static final String NO_MAX_CREDIT_MESSAGE = "学期最大学分未配置，无法评估毕业风险";
 
     private final CreditProgressService creditProgressService;
+    private final StatisticsSnapshotService statisticsSnapshotService;
     private final SemesterService semesterService;
     private final StudentMapper studentMapper;
     private final GradeCohortMapper gradeCohortMapper;
@@ -96,17 +100,36 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
     public GraduationRiskPageRespDTO pageGraduationRisk(GraduationRiskQueryReqDTO requestParam) {
         Long targetSemesterId = resolveSemesterId(requestParam.getSemesterId());
         BigDecimal maxCreditPerSemester = resolveMaxCreditPerSemester(targetSemesterId);
-        List<StudentDO> studentDOList = studentMapper.listStudentByMajorAndGrade(
-                requestParam.getMajorId(), requestParam.getGradeId());
+        // 一次读取（暖路径命中当日快照 / 冷路径实时构建并回写）全量学分进度快照，消除逐学生 N+1 跨学期扫描
+        List<StatCreditProgressDO> snapList = statisticsSnapshotService.getCreditProgressBySemester(targetSemesterId);
+        // 按专业 / 年级过滤（入参为空表示不过滤）
+        List<StatCreditProgressDO> filteredSnapList = snapList.stream()
+                .filter(each -> requestParam.getMajorId() == null
+                        || Objects.equals(each.getMajorId(), requestParam.getMajorId()))
+                .filter(each -> requestParam.getGradeId() == null
+                        || Objects.equals(each.getGradeId(), requestParam.getGradeId()))
+                .toList();
+        // 批量查询年级入学年份一次，供剩余学期数计算复用
+        List<Long> gradeIds = filteredSnapList.stream()
+                .map(StatCreditProgressDO::getGradeId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, GradeCohortDO> gradeMap = gradeIds.isEmpty()
+                ? Map.of()
+                : gradeCohortMapper.listGradeCohortByIds(gradeIds).stream()
+                .collect(Collectors.toMap(GradeCohortDO::getId, Function.identity(), (first, second) -> first));
         List<GraduationRiskRespDTO> allRecords = new ArrayList<>();
-        for (StudentDO each : studentDOList) {
-            CreditProgressRespDTO creditProgress = creditProgressService
-                    .getCreditProgressByStudentId(each.getId(), targetSemesterId);
-            int remainingSemesters = resolveRemainingSemesters(each.getId());
-            allRecords.add(buildRespDTO(each.getId(), targetSemesterId, creditProgress, remainingSemesters,
-                    maxCreditPerSemester, true));
+        for (StatCreditProgressDO each : filteredSnapList) {
+            Integer entryYear = null;
+            GradeCohortDO gradeCohortDO = each.getGradeId() == null ? null : gradeMap.get(each.getGradeId());
+            if (gradeCohortDO != null) {
+                entryYear = gradeCohortDO.getEntryYear();
+            }
+            int remainingSemesters = resolveRemainingSemesters(each.getGradeId(), entryYear);
+            allRecords.add(buildRespDTOFromSnapshot(each, remainingSemesters, maxCreditPerSemester));
         }
-        fillStudentInfo(allRecords, studentDOList);
+        fillStudentInfo(allRecords, filteredSnapList);
         GraduationRiskExtraRespDTO extra = buildExtra(targetSemesterId, allRecords);
         RiskLevelEnum riskLevelFilter = EnumParseUtil.parseOrNull(RiskLevelEnum.class, requestParam.getRiskLevel());
         List<GraduationRiskRespDTO> filteredRecords = riskLevelFilter == null
@@ -212,6 +235,98 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
     }
 
     /**
+     * 从学分进度快照直接组装毕业风险预测出参，不再触发逐学生跨学期扫描
+     *
+     * <p>completedCredit / passedCredit / planTotalCredit / progressRate / hasPlan / riskLevel 均直接取自快照，
+     * 与 {@link #buildRespDTO} 保持数值一致；riskLevel 取快照已算好的值，避免再次 N+1 调用风险计算。
+     *
+     * @param snap                 学分进度快照
+     * @param remainingSemesters   剩余学期数
+     * @param maxCreditPerSemester 学期最大学分
+     * @return 毕业风险预测出参
+     */
+    private GraduationRiskRespDTO buildRespDTOFromSnapshot(StatCreditProgressDO snap, int remainingSemesters,
+                                                          BigDecimal maxCreditPerSemester) {
+        GraduationRiskRespDTO result = new GraduationRiskRespDTO();
+        result.setSemesterId(snap.getSemesterId());
+        result.setStudentId(snap.getStudentId());
+        result.setStudentNo(snap.getStudentNo());
+        result.setStudentName(snap.getStudentName());
+        boolean hasPlan = Integer.valueOf(1).equals(snap.getHasPlan());
+        result.setHasPlan(hasPlan);
+        result.setCompletedCredit(snap.getCompletedCredit());
+        result.setPassedCredit(snap.getPassedCredit());
+        result.setPlanTotalCredit(snap.getPlanTotalCredit());
+        result.setProgressRate(snap.getProgressRate());
+        result.setRemainingSemesters(remainingSemesters);
+        result.setMaxCreditPerSemester(maxCreditPerSemester);
+        result.setGaps(buildGapsFromSnapshot(snap));
+        BigDecimal remainingCredit = defaultZero(snap.getPlanTotalCredit())
+                .subtract(defaultZero(snap.getCompletedCredit()));
+        result.setRemainingCredit(scaleOne(remainingCredit.compareTo(BigDecimal.ZERO) > 0
+                ? remainingCredit
+                : BigDecimal.ZERO));
+        BigDecimal requiredCreditPerSemester = scaleOne(remainingCredit
+                .divide(BigDecimal.valueOf(Math.max(remainingSemesters, 1)), 1, RoundingMode.HALF_UP));
+        result.setRequiredCreditPerSemester(requiredCreditPerSemester);
+        BigDecimal requiredRate = calculateRequiredRate(requiredCreditPerSemester, maxCreditPerSemester);
+        result.setRequiredRate(requiredRate);
+        RiskLevelEnum riskLevel = snap.getRiskLevel() == null ? RiskLevelEnum.LOW : snap.getRiskLevel();
+        result.setRiskLevel(riskLevel.name());
+        if (!hasPlan) {
+            result.setMessage(NO_PLAN_MESSAGE);
+            result.setRiskReason(NO_PLAN_MESSAGE);
+            return result;
+        }
+        result.setMessage("");
+        if (maxCreditPerSemester.compareTo(BigDecimal.ZERO) <= 0) {
+            result.setRiskReason(NO_MAX_CREDIT_MESSAGE);
+            return result;
+        }
+        result.setRiskReason(buildRiskReason(requiredCreditPerSemester, requiredRate));
+        return result;
+    }
+
+    /**
+     * 从快照列构建按课程类型的学分缺口，顺序与 {@link #buildGaps} 一致（REQUIRED / MAJOR_ELECTIVE / PUBLIC_ELECTIVE）
+     *
+     * @param snap 学分进度快照
+     * @return 学分缺口集合
+     */
+    private List<GraduationRiskGapRespDTO> buildGapsFromSnapshot(StatCreditProgressDO snap) {
+        List<GraduationRiskGapRespDTO> result = new ArrayList<>();
+        for (CourseTypeEnum each : CourseTypeEnum.values()) {
+            BigDecimal completed;
+            BigDecimal required;
+            switch (each) {
+                case REQUIRED -> {
+                    completed = snap.getRequiredCredit();
+                    required = snap.getPlanRequiredCredit();
+                }
+                case MAJOR_ELECTIVE -> {
+                    completed = snap.getMajorElectiveCredit();
+                    required = snap.getPlanMajorElectiveCredit();
+                }
+                case PUBLIC_ELECTIVE -> {
+                    completed = snap.getPublicElectiveCredit();
+                    required = snap.getPlanPublicElectiveCredit();
+                }
+                default -> {
+                    completed = BigDecimal.ZERO;
+                    required = BigDecimal.ZERO;
+                }
+            }
+            GraduationRiskGapRespDTO gap = new GraduationRiskGapRespDTO();
+            gap.setCourseType(each.getCode());
+            gap.setCourseTypeName(each.getDescription());
+            BigDecimal gapCredit = defaultZero(required).subtract(defaultZero(completed));
+            gap.setGapCredit(scaleOne(gapCredit.compareTo(BigDecimal.ZERO) > 0 ? gapCredit : BigDecimal.ZERO));
+            result.add(gap);
+        }
+        return result;
+    }
+
+    /**
      * 构建风险原因文案
      *
      * @param requiredCreditPerSemester 每学期需修学分
@@ -280,11 +395,9 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
      * @param records        风险记录集合
      * @param studentDOList  学生数据对象集合
      */
-    private void fillStudentInfo(List<GraduationRiskRespDTO> records, List<StudentDO> studentDOList) {
-        Map<Long, StudentDO> studentMap = studentDOList.stream()
-                .collect(Collectors.toMap(StudentDO::getId, Function.identity(), (first, second) -> first));
-        List<Long> majorIds = studentDOList.stream().map(StudentDO::getMajorId).filter(Objects::nonNull).distinct().toList();
-        List<Long> gradeIds = studentDOList.stream().map(StudentDO::getGradeId).filter(Objects::nonNull).distinct().toList();
+    private void fillStudentInfo(List<GraduationRiskRespDTO> records, List<StatCreditProgressDO> snapList) {
+        List<Long> majorIds = snapList.stream().map(StatCreditProgressDO::getMajorId).filter(Objects::nonNull).distinct().toList();
+        List<Long> gradeIds = snapList.stream().map(StatCreditProgressDO::getGradeId).filter(Objects::nonNull).distinct().toList();
         Map<Long, MajorDO> majorMap = majorIds.isEmpty()
                 ? Map.of()
                 : majorMapper.listMajorByIds(majorIds).stream()
@@ -293,16 +406,16 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
                 ? Map.of()
                 : gradeCohortMapper.listGradeCohortByIds(gradeIds).stream()
                 .collect(Collectors.toMap(GradeCohortDO::getId, Function.identity(), (first, second) -> first));
+        Map<Long, StatCreditProgressDO> snapMap = snapList.stream()
+                .collect(Collectors.toMap(StatCreditProgressDO::getStudentId, Function.identity(), (first, second) -> first));
         for (GraduationRiskRespDTO each : records) {
-            StudentDO studentDO = studentMap.get(each.getStudentId());
-            if (studentDO == null) {
+            StatCreditProgressDO snap = snapMap.get(each.getStudentId());
+            if (snap == null) {
                 continue;
             }
-            each.setStudentNo(studentDO.getStudentNo());
-            each.setStudentName(studentDO.getStudentName());
-            MajorDO majorDO = majorMap.get(studentDO.getMajorId());
+            MajorDO majorDO = majorMap.get(snap.getMajorId());
             each.setMajorName(majorDO == null ? null : majorDO.getMajorName());
-            GradeCohortDO gradeCohortDO = gradeMap.get(studentDO.getGradeId());
+            GradeCohortDO gradeCohortDO = gradeMap.get(snap.getGradeId());
             each.setGradeName(gradeCohortDO == null ? null : gradeCohortDO.getGradeName());
         }
     }
@@ -315,14 +428,29 @@ public class GraduationRiskServiceImpl implements GraduationRiskService {
      */
     private int resolveRemainingSemesters(Long studentId) {
         StudentDO studentDO = studentMapper.getStudentById(studentId);
-        int entryYear = LocalDate.now().getYear();
-        if (studentDO != null && studentDO.getGradeId() != null) {
-            GradeCohortDO gradeCohortDO = gradeCohortMapper.getGradeCohortById(studentDO.getGradeId());
-            if (gradeCohortDO != null && gradeCohortDO.getEntryYear() != null) {
+        Long gradeId = studentDO == null ? null : studentDO.getGradeId();
+        Integer entryYear = null;
+        if (gradeId != null) {
+            GradeCohortDO gradeCohortDO = gradeCohortMapper.getGradeCohortById(gradeId);
+            if (gradeCohortDO != null) {
                 entryYear = gradeCohortDO.getEntryYear();
             }
         }
-        int remaining = defaultSchoolYears - (LocalDate.now().getYear() - entryYear);
+        return resolveRemainingSemesters(gradeId, entryYear);
+    }
+
+    /**
+     * 计算剩余学期数：学制 − (当前学年 − 入学年份)，最小为 1
+     *
+     * <p>供 {@link #pageGraduationRisk} 在批量已知年级入学年份时直接复用，避免逐学生回查。
+     *
+     * @param gradeId    年级 ID，可为 null
+     * @param entryYear  入学年份，为空时按当前年份兜底
+     * @return 剩余学期数
+     */
+    private int resolveRemainingSemesters(Long gradeId, Integer entryYear) {
+        int entry = entryYear != null ? entryYear : LocalDate.now().getYear();
+        int remaining = defaultSchoolYears - (LocalDate.now().getYear() - entry);
         return remaining < 1 ? 1 : remaining;
     }
 

@@ -162,6 +162,23 @@ public class StatisticsSnapshotServiceImpl implements StatisticsSnapshotService 
     }
 
     @Override
+    public List<StatCreditProgressDO> getCreditProgressBySemester(Long semesterId) {
+        Long targetSemesterId = resolveSemesterId(semesterId);
+        return readOrComputeCreditProgress(targetSemesterId,
+                () -> computeCreditProgressSnapshot(targetSemesterId)).getData();
+    }
+
+    /**
+     * 暴露私有的快照计算逻辑，供 {@link #getCreditProgressBySemester} 在冷路径下实时构建回写
+     *
+     * @param semesterId 学期 ID
+     * @return 学生学分进度快照集合
+     */
+    public List<StatCreditProgressDO> computeCreditProgressSnapshot(Long semesterId) {
+        return buildCreditProgressSnapshot(semesterId);
+    }
+
+    @Override
     public SnapshotResult<StatSemesterOverviewDO> readOrComputeOverview(
             Long semesterId, Supplier<StatSemesterOverviewDO> computeFunc) {
         Long targetSemesterId = resolveSemesterId(semesterId);

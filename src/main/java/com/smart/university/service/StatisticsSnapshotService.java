@@ -58,6 +58,16 @@ public interface StatisticsSnapshotService {
             Long semesterId, Supplier<List<StatCreditProgressDO>> computeFunc);
 
     /**
+     * 读取指定学期的学生学分进度快照
+     *
+     * <p>语义复用 {@link #readOrComputeCreditProgress}：命中当日快照直接返回，未命中实时计算并回写。
+     *
+     * @param semesterId 学期 ID，为空取当前学期
+     * @return 学生学分进度快照集合
+     */
+    List<StatCreditProgressDO> getCreditProgressBySemester(Long semesterId);
+
+    /**
      * 读取或计算教务看板指标快照
      *
      * @param semesterId  学期 ID
