@@ -95,4 +95,13 @@ public interface TeachingClassService {
      */
     PageResult<TeacherClassStudentRespDTO> pageTeacherClassStudent(Long teachingClassId,
                                                                    TeacherStudentPageQueryReqDTO requestParam);
+
+    /**
+     * 将教学班 DO 列表转换为出参，并批量回填课程名、教师名、排课、开放专业与年级、已选人数。
+     * 供教学班列表 / 详情 / 批次教学班列表复用，保证返回结构一致。
+     *
+     * @param teachingClassDOList 教学班数据对象集合
+     * @return 教学班出参集合
+     */
+    List<TeachingClassRespDTO> convertToRespDTO(List<TeachingClassDO> teachingClassDOList);
 }

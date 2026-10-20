@@ -622,11 +622,13 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
      * @param teachingClassDOList 教学班数据对象集合
      * @return 教学班出参集合
      */
-    private List<TeachingClassRespDTO> convertToRespDTO(List<TeachingClassDO> teachingClassDOList) {
+    @Override
+    public List<TeachingClassRespDTO> convertToRespDTO(List<TeachingClassDO> teachingClassDOList) {
         if (CollUtil.isEmpty(teachingClassDOList)) {
             return List.of();
         }
         Map<Long, CourseDO> courseMap = buildCourseMap(teachingClassDOList);
+        Map<Long, String> teacherMap = buildTeacherMap(teachingClassDOList);
         Map<Long, List<TeachingClassScheduleDO>> scheduleMap = buildScheduleMap(
                 teachingClassDOList.stream().map(TeachingClassDO::getId).toList());
 
@@ -652,6 +654,7 @@ public class TeachingClassServiceImpl extends ServiceImpl<TeachingClassMapper, T
             result.setCourseName(courseDO == null ? null : courseDO.getCourseName());
             result.setStatus(each.getStatus() == null ? null : each.getStatus().name());
             result.setSelectedCount(selectedCountMap.getOrDefault(each.getId(), 0L));
+            result.setTeacherName(teacherMap.get(each.getTeacherId()));
             result.setSchedules(convertSchedule(scheduleMap.getOrDefault(each.getId(), List.of())));
             result.setMajorIds(majorIdMap.getOrDefault(each.getId(), List.of()));
             result.setGradeIds(gradeIdMap.getOrDefault(each.getId(), List.of()));

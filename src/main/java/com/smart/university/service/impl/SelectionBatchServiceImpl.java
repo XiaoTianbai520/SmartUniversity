@@ -9,11 +9,11 @@ import com.smart.university.common.base.PageResult;
 import com.smart.university.common.enums.ResultCodeEnum;
 import com.smart.university.common.enums.RoleEnum;
 import com.smart.university.common.exception.BizException;
-import com.smart.university.domain.entity.CourseDO;
 import com.smart.university.domain.entity.CourseSelectionDO;
 import com.smart.university.domain.entity.SelectionBatchClassDO;
 import com.smart.university.domain.entity.SelectionBatchDO;
 import com.smart.university.domain.entity.TeachingClassDO;
+import com.smart.university.service.TeachingClassService;
 import com.smart.university.domain.enums.NoticeTypeEnum;
 import com.smart.university.domain.enums.SelectionBatchStatusEnum;
 import com.smart.university.domain.enums.TeachingClassStatusEnum;
@@ -26,7 +26,6 @@ import com.smart.university.domain.dto.req.SelectionBatchSaveReqDTO;
 import com.smart.university.domain.dto.req.SelectionBatchStatusUpdateReqDTO;
 import com.smart.university.domain.dto.resp.SelectionBatchRespDTO;
 import com.smart.university.domain.dto.resp.TeachingClassRespDTO;
-import com.smart.university.mapper.CourseMapper;
 import com.smart.university.mapper.CourseSelectionMapper;
 import com.smart.university.mapper.SelectionBatchClassMapper;
 import com.smart.university.mapper.SelectionBatchMapper;
@@ -36,6 +35,7 @@ import com.smart.university.service.SelectionBatchService;
 import com.smart.university.service.SemesterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,8 +43,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * 选课批次服务实现
@@ -67,11 +65,17 @@ public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper,
 
     private final CourseSelectionMapper courseSelectionMapper;
 
-    private final CourseMapper courseMapper;
-
     private final NoticeEventPublisher noticeEventPublisher;
 
     private final NoticeTargetResolver noticeTargetResolver;
+
+    /**
+     * 教学班出参转换复用 TeachingClassServiceImpl 的同一实现，保证批次教学班列表与
+     * §16.2/§16.3 教学班列表返回结构一致（含 teacherName / schedules / majorIds / gradeIds）。
+     * 采用字段注入而非构造注入，避免与 TeachingClassServiceImpl（已注入 SelectionBatchService）形成构造循环依赖。
+     */
+    @Autowired
+    private TeachingClassService teachingClassService;
 
     private final SemesterService semesterService;
 
@@ -170,18 +174,7 @@ public class SelectionBatchServiceImpl extends ServiceImpl<SelectionBatchMapper,
             return List.of();
         }
         List<TeachingClassDO> teachingClassDOList = teachingClassMapper.listTeachingClassByIds(teachingClassIds);
-        Map<Long, CourseDO> courseMap = courseMapper
-                .listCourseByIds(teachingClassDOList.stream().map(TeachingClassDO::getCourseId).distinct().toList())
-                .stream().collect(Collectors.toMap(CourseDO::getId, Function.identity()));
-        return teachingClassDOList.stream().map(each -> {
-            TeachingClassRespDTO result = BeanUtil.copyProperties(each, TeachingClassRespDTO.class);
-            result.setTeachingClassId(each.getId());
-            CourseDO courseDO = courseMap.get(each.getCourseId());
-            result.setCourseName(courseDO == null ? null : courseDO.getCourseName());
-            result.setStatus(each.getStatus() == null ? null : each.getStatus().name());
-            result.setSelectedCount(courseSelectionMapper.countSelectedByTeachingClassId(each.getId()));
-            return result;
-        }).toList();
+        return teachingClassService.convertToRespDTO(teachingClassDOList);
     }
 
     @Override
